@@ -121,6 +121,8 @@ public abstract class TileEntityElectricMachine<RECIPE extends BasicMachineRecip
 		
 		factory.markDirty();
 		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), new Range4D(Coord4D.get(factory)));
+		worldObj.notifyNeighborsOfStateChange(factory.getPos(), factory.getBlockType());
+		MekanismUtils.updateBlock(worldObj, factory.getPos());
 	}
 	
 	@Override
