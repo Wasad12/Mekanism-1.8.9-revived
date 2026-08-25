@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import mekanism.api.Coord4D;
 import mekanism.common.PacketHandler;
 import mekanism.common.base.ITileNetwork;
-import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.util.MekanismUtils;
@@ -39,26 +38,8 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 		BlockPos pos = message.coord4D.getPos();
 		
 		TileEntity tileEntity = message.coord4D.getTileEntity(world);
-		
-		// Use expected machine type from packet if provided, otherwise infer from block state
-		MachineType expectedType = message.expectedMachineType;
-		TileEntity expected = null;
-		
-		if(expectedType != null)
-		{
-			Block block = world.getBlockState(pos).getBlock();
-			if(block instanceof mekanism.common.block.BlockMachine)
-			{
-				mekanism.common.block.BlockMachine machineBlock = (mekanism.common.block.BlockMachine)block;
-				IBlockState expectedState = machineBlock.getDefaultState().withProperty(machineBlock.getTypeProperty(), expectedType);
-				expected = machineBlock.createTileEntity(world, expectedState);
-			}
-		}
-		else
-		{
-			IBlockState state = world.getBlockState(pos);
-			expected = state.getBlock().createTileEntity(world, state);
-		}
+		IBlockState state = world.getBlockState(pos);
+		TileEntity expected = state.getBlock().createTileEntity(world, state);
 		
 		if(expected != null && (tileEntity == null || tileEntity.getClass() != expected.getClass()))
 		{
@@ -98,21 +79,12 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 		
 		public ByteBuf storedBuffer = null;
 		
-		public MachineType expectedMachineType = null;
-		
 		public TileEntityMessage() {}
 	
 		public TileEntityMessage(Coord4D coord, ArrayList<Object> params)
 		{
 			coord4D = coord;
 			parameters = params;
-		}
-		
-		public TileEntityMessage(Coord4D coord, ArrayList<Object> params, MachineType type)
-		{
-			coord4D = coord;
-			parameters = params;
-			expectedMachineType = type;
 		}
 	
 		@Override
@@ -129,15 +101,6 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 			}
 			
 			PacketHandler.encode(new Object[] {parameters}, dataStream);
-			
-			if(expectedMachineType != null)
-			{
-				dataStream.writeInt(expectedMachineType.ordinal());
-			}
-			else
-			{
-				dataStream.writeInt(-1);
-			}
 		}
 	
 		@Override
@@ -146,12 +109,6 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 			coord4D = Coord4D.read(dataStream);
 			
 			storedBuffer = dataStream.copy();
-			
-			int typeOrdinal = dataStream.readInt();
-			if(typeOrdinal >= 0)
-			{
-				expectedMachineType = MachineType.values()[typeOrdinal];
-			}
 		}
 	}
 }
