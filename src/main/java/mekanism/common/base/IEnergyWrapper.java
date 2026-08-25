@@ -1,9 +1,4 @@
 package mekanism.common.base;
-
-import ic2.api.energy.tile.IEnergySink;
-import ic2.api.energy.tile.IEnergySource;
-import ic2.api.tile.IEnergyStorage;
-
 import java.util.EnumSet;
 
 import mekanism.api.energy.ICableOutputter;
@@ -17,12 +12,7 @@ import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyReceiver;
 import cofh.api.energy.IEnergyProvider;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.energy.tile.IEnergySink", modid = "IC2"),
-	@Interface(iface = "ic2.api.energy.tile.IEnergySource", modid = "IC2"),
-	@Interface(iface = "ic2.api.tile.IEnergyStorage", modid = "IC2")
-})
-public interface IEnergyWrapper extends IStrictEnergyStorage, IEnergyHandler, IEnergyReceiver, IEnergyProvider, IEnergySink, IEnergySource, IEnergyStorage, IStrictEnergyAcceptor, ICableOutputter, IInventory
+public interface IEnergyWrapper extends IStrictEnergyStorage, IEnergyHandler, IEnergyReceiver, IEnergyProvider, IStrictEnergyAcceptor, ICableOutputter, IInventory
 {
 	public EnumSet<EnumFacing> getOutputtingSides();
 

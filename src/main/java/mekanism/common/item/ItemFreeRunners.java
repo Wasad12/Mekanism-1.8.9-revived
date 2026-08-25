@@ -1,8 +1,4 @@
 package mekanism.common.item;
-
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
-
 import java.util.List;
 
 import mekanism.api.EnumColor;
@@ -11,7 +7,6 @@ import mekanism.api.energy.IEnergizedItem;
 import mekanism.client.render.ModelCustomArmor;
 import mekanism.client.render.ModelCustomArmor.ArmorModel;
 import mekanism.common.Mekanism;
-import mekanism.common.integration.IC2ItemManager;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
@@ -34,10 +29,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import cofh.api.energy.IEnergyContainerItem;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "IC2")
-})
-public class ItemFreeRunners extends ItemArmor implements IEnergizedItem, ISpecialElectricItem, IEnergyContainerItem
+public class ItemFreeRunners extends ItemArmor implements IEnergizedItem, IEnergyContainerItem
 {
 	/** The maximum amount of energy this item can hold. */
 	public double MAX_ELECTRICITY = 64000;
@@ -89,48 +81,6 @@ public class ItemFreeRunners extends ItemArmor implements IEnergizedItem, ISpeci
 		ItemStack charged = new ItemStack(this);
 		setEnergy(charged, ((IEnergizedItem)charged.getItem()).getMaxEnergy(charged));
 		list.add(charged);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean canProvideEnergy(ItemStack itemStack)
-	{
-		return canSend(itemStack);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getChargedItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getEmptyItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getMaxCharge(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getTier(ItemStack itemStack)
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getTransferLimit(ItemStack itemStack)
-	{
-		return 0;
 	}
 
 	@Override
@@ -229,13 +179,6 @@ public class ItemFreeRunners extends ItemArmor implements IEnergizedItem, ISpeci
 	public double getDurabilityForDisplay(ItemStack stack)
 	{
 		return 1D-(getEnergy(stack)/getMaxEnergy(stack));
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public IElectricItemManager getManager(ItemStack itemStack)
-	{
-		return IC2ItemManager.getManager(this);
 	}
 
 	@SubscribeEvent

@@ -1,8 +1,4 @@
 package mekanism.common.item;
-
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +24,6 @@ import mekanism.common.base.ISustainedTank;
 import mekanism.common.base.ITierItem;
 import mekanism.common.base.IUpgradeTile;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
-import mekanism.common.integration.IC2ItemManager;
 import mekanism.common.inventory.InventoryPersonalChest;
 import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.security.ISecurityItem;
@@ -114,10 +109,7 @@ import cofh.api.energy.IEnergyContainerItem;
  * @author AidanBrady
  *
  */
-@InterfaceList({
-	@Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "IC2")
-})
-public class ItemBlockMachine extends ItemBlock implements IEnergizedItem, ISpecialElectricItem, IFactory, ISustainedInventory, ISustainedTank, IEnergyContainerItem, IFluidContainerItem, ITierItem, ISecurityItem
+public class ItemBlockMachine extends ItemBlock implements IEnergizedItem, IFactory, ISustainedInventory, ISustainedTank, IEnergyContainerItem, IFluidContainerItem, ITierItem, ISecurityItem
 {
 	public Block metaBlock;
 
@@ -406,34 +398,6 @@ public class ItemBlockMachine extends ItemBlock implements IEnergizedItem, ISpec
 		}
 		
 		return super.getColorFromItemStack(stack, renderPass);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean canProvideEnergy(ItemStack itemStack)
-	{
-		return false;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getMaxCharge(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getTier(ItemStack itemStack)
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getTransferLimit(ItemStack itemStack)
-	{
-		return 0;
 	}
 
     public boolean tryPlaceContainedLiquid(World world, ItemStack itemstack, BlockPos pos)
@@ -779,27 +743,6 @@ public class ItemBlockMachine extends ItemBlock implements IEnergizedItem, ISpec
 	public int getMaxEnergyStored(ItemStack theItem)
 	{
 		return (int)(getMaxEnergy(theItem)*general.TO_TE);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public IElectricItemManager getManager(ItemStack itemStack)
-	{
-		return IC2ItemManager.getManager(this);
-	}
-	
-	@Override
-	@Method(modid = "IC2")
-	public Item getChargedItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getEmptyItem(ItemStack itemStack)
-	{
-		return this;
 	}
 
 	@Override

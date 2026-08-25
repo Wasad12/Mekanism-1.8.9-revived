@@ -1,12 +1,4 @@
 package mekanism.common.tile;
-
-import ic2.api.energy.EnergyNet;
-import ic2.api.energy.event.EnergyTileLoadEvent;
-import ic2.api.energy.event.EnergyTileUnloadEvent;
-import ic2.api.energy.tile.IEnergyAcceptor;
-import ic2.api.energy.tile.IEnergyConductor;
-import ic2.api.energy.tile.IEnergyEmitter;
-import ic2.api.energy.tile.IEnergyTile;
 import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;
@@ -27,25 +19,13 @@ import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Optional.Interface;
-import net.minecraftforge.fml.common.Optional.InterfaceList;
-import net.minecraftforge.fml.common.Optional.Method;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.energy.tile.IEnergySink", modid = "IC2"),
-	@Interface(iface = "ic2.api.energy.tile.IEnergySource", modid = "IC2"),
-	@Interface(iface = "ic2.api.tile.IEnergyStorage", modid = "IC2")
-})
 public class TileEntityInductionPort extends TileEntityInductionCasing implements IEnergyWrapper, IConfigurable, IActiveState
 {
-	public boolean ic2Registered = false;
-	
 	/** false = input, true = output */
 	public boolean mode;
 	
@@ -58,11 +38,6 @@ public class TileEntityInductionPort extends TileEntityInductionCasing implement
 	public void onUpdate()
 	{
 		super.onUpdate();
-		
-		if(!ic2Registered && MekanismUtils.useIC2())
-		{
-			register();
-		}
 		
 		if(!worldObj.isRemote)
 		{
@@ -105,42 +80,6 @@ public class TileEntityInductionPort extends TileEntityInductionCasing implement
 		}
 		
 		return EnumSet.noneOf(EnumFacing.class);
-	}
-	
-	@Method(modid = "IC2")
-	public void register()
-	{
-		if(!worldObj.isRemote)
-		{
-			IEnergyTile registered = EnergyNet.instance.getTile(worldObj, getPos());
-			
-			if(registered != this)
-			{
-				if(registered instanceof IEnergyTile)
-				{
-					MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(registered));
-				}
-				else if(registered == null)
-				{
-					MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
-					ic2Registered = true;
-				}
-			}
-		}
-	}
-
-	@Method(modid = "IC2")
-	public void deregister()
-	{
-		if(!worldObj.isRemote)
-		{
-			IEnergyTile registered = EnergyNet.instance.getTile(worldObj, getPos());
-			
-			if(registered instanceof IEnergyTile)
-			{
-				MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(registered));
-			}
-		}
 	}
 
 	@Override
@@ -185,21 +124,11 @@ public class TileEntityInductionPort extends TileEntityInductionCasing implement
 	public void onAdded()
 	{
 		super.onAdded();
-		
-		if(MekanismUtils.useIC2())
-		{
-			register();
-		}
 	}
 
 	@Override
 	public void onChunkUnload()
 	{
-		if(MekanismUtils.useIC2())
-		{
-			deregister();
-		}
-
 		super.onChunkUnload();
 	}
 
@@ -207,11 +136,6 @@ public class TileEntityInductionPort extends TileEntityInductionCasing implement
 	public void invalidate()
 	{
 		super.invalidate();
-
-		if(MekanismUtils.useIC2())
-		{
-			deregister();
-		}
 	}
 
 	@Override
@@ -287,134 +211,15 @@ public class TileEntityInductionPort extends TileEntityInductionCasing implement
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public int getSinkTier()
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getSourceTier()
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public void setStored(int energy)
-	{
-		setEnergy(energy*general.FROM_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int addEnergy(int amount)
-	{
-		double toUse = Math.min(Math.min(getMaxInput(), getMaxEnergy()-getEnergy()), amount*general.FROM_IC2);
-		setEnergy(getEnergy() + toUse);
-		structure.remainingInput -= toUse;
-		return (int)Math.round(getEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean isTeleporterCompatible(EnumFacing side)
-	{
-		return canOutputTo(side);
-	}
-
-	@Override
 	public boolean canOutputTo(EnumFacing side)
 	{
 		return getOutputtingSides().contains(side);
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public boolean acceptsEnergyFrom(IEnergyEmitter emitter, EnumFacing direction)
-	{
-		return getConsumingSides().contains(direction);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean emitsEnergyTo(IEnergyAcceptor receiver, EnumFacing direction)
-	{
-		return getOutputtingSides().contains(direction) && receiver instanceof IEnergyConductor;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getStored()
-	{
-		return (int)Math.round(getEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getCapacity()
-	{
-		return (int)Math.round(getMaxEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getOutput()
-	{
-		return (int)Math.round(getMaxOutput()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getDemandedEnergy()
-	{
-		return (getMaxEnergy() - getEnergy())*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getOfferedEnergy()
-	{
-		return Math.min(getEnergy(), getMaxOutput())*general.TO_IC2;
-	}
-
-	@Override
 	public boolean canReceiveEnergy(EnumFacing side)
 	{
 		return getConsumingSides().contains(side);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getOutputEnergyUnitsPerTick()
-	{
-		return getMaxOutput()*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double injectEnergy(EnumFacing direction, double amount, double voltage)
-	{
-		TileEntity tile = getWorld().getTileEntity(getPos().offset(direction));
-		if(tile == null || MekanismUtils.hasCapability(tile, Capabilities.GRID_TRANSMITTER_CAPABILITY, direction.getOpposite()))
-		{
-			return amount;
-		}
-
-		return amount-transferEnergyToAcceptor(direction, amount*general.FROM_IC2)*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public void drawEnergy(double amount)
-	{
-		if(structure != null)
-		{
-			double toDraw = Math.min(amount*general.FROM_IC2, getMaxOutput());
-			setEnergy(Math.max(getEnergy() - toDraw, 0));
-			structure.remainingOutput -= toDraw;
-		}
 	}
 
 	@Override

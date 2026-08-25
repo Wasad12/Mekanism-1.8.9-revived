@@ -1,12 +1,4 @@
 package mekanism.common.tile;
-
-import ic2.api.energy.EnergyNet;
-import ic2.api.energy.event.EnergyTileLoadEvent;
-import ic2.api.energy.event.EnergyTileUnloadEvent;
-import ic2.api.energy.tile.IEnergyAcceptor;
-import ic2.api.energy.tile.IEnergyConductor;
-import ic2.api.energy.tile.IEnergyEmitter;
-import ic2.api.energy.tile.IEnergyTile;
 import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;
@@ -17,12 +9,9 @@ import mekanism.common.base.IEnergyWrapper;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.util.MekanismUtils;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Optional.Method;
 
 public abstract class TileEntityElectricBlock extends TileEntityContainerBlock implements IEnergyWrapper
 {
@@ -34,9 +23,6 @@ public abstract class TileEntityElectricBlock extends TileEntityContainerBlock i
 
 	/** Actual maximum energy storage, including upgrades */
 	public double maxEnergy;
-
-	/** Is this registered with IC2 */
-	public boolean ic2Registered = false;
 
 	/**
 	 * The base of all blocks that deal with electricity. It has a facing state, initialized state,
@@ -51,50 +37,8 @@ public abstract class TileEntityElectricBlock extends TileEntityContainerBlock i
 		maxEnergy = BASE_MAX_ENERGY;
 	}
 
-	@Method(modid = "IC2")
-	public void register()
-	{
-		if(!worldObj.isRemote)
-		{
-			IEnergyTile registered = EnergyNet.instance.getTile(worldObj, getPos());
-			
-			if(registered != this)
-			{
-				if(registered instanceof IEnergyTile)
-				{
-					MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(registered));
-				}
-				else if(registered == null)
-				{
-					MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
-					ic2Registered = true;
-				}
-			}
-		}
-	}
-
-	@Method(modid = "IC2")
-	public void deregister()
-	{
-		if(!worldObj.isRemote)
-		{
-			IEnergyTile registered = EnergyNet.instance.getTile(worldObj, getPos());
-			
-			if(registered instanceof IEnergyTile)
-			{
-				MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(registered));
-			}
-		}
-	}
-
 	@Override
-	public void onUpdate()
-	{
-		if(!ic2Registered && MekanismUtils.useIC2())
-		{
-			register();
-		}
-	}
+	public void onUpdate() {}
 
 	@Override
 	public EnumSet<EnumFacing> getOutputtingSides()
@@ -158,21 +102,11 @@ public abstract class TileEntityElectricBlock extends TileEntityContainerBlock i
 	public void onAdded()
 	{
 		super.onAdded();
-		
-		if(MekanismUtils.useIC2())
-		{
-			register();
-		}
 	}
 
 	@Override
 	public void onChunkUnload()
 	{
-		if(MekanismUtils.useIC2())
-		{
-			deregister();
-		}
-
 		super.onChunkUnload();
 	}
 
@@ -180,11 +114,6 @@ public abstract class TileEntityElectricBlock extends TileEntityContainerBlock i
 	public void invalidate()
 	{
 		super.invalidate();
-
-		if(MekanismUtils.useIC2())
-		{
-			deregister();
-		}
 	}
 
 	@Override
@@ -268,127 +197,15 @@ public abstract class TileEntityElectricBlock extends TileEntityContainerBlock i
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public int getSinkTier()
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getSourceTier()
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public void setStored(int energy)
-	{
-		setEnergy(energy*general.FROM_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int addEnergy(int amount)
-	{
-		setEnergy(getEnergy() + amount*general.FROM_IC2);
-		return (int)Math.round(getEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean isTeleporterCompatible(EnumFacing side)
-	{
-		return getOutputtingSides().contains(side);
-	}
-
-	@Override
 	public boolean canOutputTo(EnumFacing side)
 	{
 		return getOutputtingSides().contains(side);
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public boolean acceptsEnergyFrom(IEnergyEmitter emitter, EnumFacing direction)
-	{
-		return getConsumingSides().contains(direction);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean emitsEnergyTo(IEnergyAcceptor receiver, EnumFacing direction)
-	{
-		return getOutputtingSides().contains(direction) && receiver instanceof IEnergyConductor;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getStored()
-	{
-		return (int)Math.round(getEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getCapacity()
-	{
-		return (int)Math.round(getMaxEnergy()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getOutput()
-	{
-		return (int)Math.round(getMaxOutput()*general.TO_IC2);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getDemandedEnergy()
-	{
-		return (getMaxEnergy() - getEnergy())*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getOfferedEnergy()
-	{
-		return Math.min(getEnergy(), getMaxOutput())*general.TO_IC2;
-	}
-
-	@Override
 	public boolean canReceiveEnergy(EnumFacing side)
 	{
 		return getConsumingSides().contains(side);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getOutputEnergyUnitsPerTick()
-	{
-		return getMaxOutput()*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double injectEnergy(EnumFacing direction, double amount, double voltage)
-	{
-		TileEntity tile = getWorld().getTileEntity(getPos().offset(direction));
-		if(tile == null || MekanismUtils.hasCapability(tile, Capabilities.GRID_TRANSMITTER_CAPABILITY, direction.getOpposite()))
-		{
-			return amount;
-		}
-
-		return amount-transferEnergyToAcceptor(direction, amount*general.FROM_IC2)*general.TO_IC2;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public void drawEnergy(double amount)
-	{
-		setEnergy(Math.max(getEnergy() - (amount*general.FROM_IC2), 0));
 	}
 
 	@Override

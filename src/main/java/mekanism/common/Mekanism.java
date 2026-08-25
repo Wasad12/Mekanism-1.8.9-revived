@@ -161,7 +161,7 @@ import com.mojang.authlib.GameProfile;
  *
  */
 @Mod(modid = "Mekanism", name = "Mekanism", version = "9.0.1", guiFactory = "mekanism.client.gui.ConfigGuiFactory",
-		dependencies = "after:mcmultipart;after:JEI;after:BuildCraft;after:BuildCraftAPI;after:IC2;after:CoFHCore;" +
+		dependencies = "after:mcmultipart;after:JEI;after:BuildCraft;after:BuildCraftAPI;after:CoFHCore;" +
 				"after:ComputerCraft;after:Galacticraft API;after:MetallurgyCore")
 public class Mekanism
 {
@@ -1522,11 +1522,7 @@ public class Mekanism
 				{
 					TileEntity tileEntity = (TileEntity)obj;
 	
-					if(tileEntity instanceof TileEntityElectricBlock && MekanismUtils.useIC2())
-					{
-						((TileEntityElectricBlock)tileEntity).register();
-					}
-					else if(tileEntity instanceof IChunkLoadHandler)
+					if(tileEntity instanceof IChunkLoadHandler)
 					{
 						((IChunkLoadHandler)tileEntity).onChunkLoad();
 					}

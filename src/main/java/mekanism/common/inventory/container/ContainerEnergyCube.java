@@ -1,6 +1,4 @@
 package mekanism.common.inventory.container;
-
-import ic2.api.item.IElectricItem;
 import mekanism.common.inventory.slot.SlotEnergy.SlotCharge;
 import mekanism.common.inventory.slot.SlotEnergy.SlotDischarge;
 import mekanism.common.tile.TileEntityEnergyCube;
@@ -183,6 +181,6 @@ public class ContainerEnergyCube extends Container
 
 	private boolean canTransfer(ItemStack slotStack)
 	{
-		return MekanismUtils.useIC2() && slotStack.getItem() instanceof IElectricItem;
+		return false;
 	}
 }

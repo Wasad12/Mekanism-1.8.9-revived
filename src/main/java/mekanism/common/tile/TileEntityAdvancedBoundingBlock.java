@@ -1,7 +1,4 @@
 package mekanism.common.tile;
-
-import ic2.api.energy.tile.IEnergyEmitter;
-import ic2.api.energy.tile.IEnergySink;
 import mekanism.api.Coord4D;
 import mekanism.api.IConfigCardAccess.ISpecialConfigData;
 import mekanism.api.energy.IStrictEnergyAcceptor;
@@ -25,10 +22,7 @@ import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyProvider;
 import cofh.api.energy.IEnergyReceiver;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.energy.tile.IEnergySink", modid = "IC2")
-})
-public class TileEntityAdvancedBoundingBlock extends TileEntityBoundingBlock implements ISidedInventory, IEnergySink, IStrictEnergyAcceptor, IEnergyProvider, IEnergyReceiver, IEnergyHandler, IComputerIntegration, ISpecialConfigData
+public class TileEntityAdvancedBoundingBlock extends TileEntityBoundingBlock implements ISidedInventory, IStrictEnergyAcceptor, IEnergyProvider, IEnergyReceiver, IEnergyHandler, IComputerIntegration, ISpecialConfigData
 {
 	@Override
 	public int getSizeInventory()
@@ -218,18 +212,6 @@ public class TileEntityAdvancedBoundingBlock extends TileEntityBoundingBlock imp
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public boolean acceptsEnergyFrom(IEnergyEmitter emitter, EnumFacing direction)
-	{
-		if(getInv() == null)
-		{
-			return false;
-		}
-
-		return getInv().acceptsEnergyFrom(emitter, direction);
-	}
-
-	@Override
 	public int receiveEnergy(EnumFacing from, int maxReceive, boolean simulate)
 	{
 		if(getInv() == null || !canReceiveEnergy(from))
@@ -337,42 +319,6 @@ public class TileEntityAdvancedBoundingBlock extends TileEntityBoundingBlock imp
 		}
 
 		return getInv().canBoundReceiveEnergy(Coord4D.get(this), side);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getDemandedEnergy()
-	{
-		if(getInv() == null)
-		{
-			return 0;
-		}
-
-		return getInv().getDemandedEnergy();
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double injectEnergy(EnumFacing directionFrom, double amount, double voltage)
-	{
-		if(getInv() == null || !canReceiveEnergy(directionFrom))
-		{
-			return amount;
-		}
-
-		return getInv().injectEnergy(directionFrom, amount, voltage);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getSinkTier()
-	{
-		if(getInv() == null)
-		{
-			return 0;
-		}
-
-		return getInv().getSinkTier();
 	}
 
 	public IAdvancedBoundingBlock getInv()

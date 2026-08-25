@@ -1,8 +1,4 @@
 package mekanism.common.integration;
-
-import ic2.api.recipe.RecipeInputOreDict;
-import ic2.api.recipe.Recipes;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -240,11 +236,6 @@ public final class OreDictManager
 		
 		try {
 			RecipeHandler.addCrusherRecipe(new ItemStack(MekanismItems.Ingot, 1, 2), StackUtils.size(OreDictionary.getOres("dustBronze").get(0), 1));
-			
-			if(Mekanism.hooks.IC2Loaded)
-			{
-				addIC2BronzeRecipe();
-			}
 		} catch(Exception e) {}
 		
 		try {
@@ -312,14 +303,6 @@ public final class OreDictManager
 					RecipeHandler.addCrusherRecipe(new ItemStack(ore.getItem(), 1, OreDictionary.WILDCARD_VALUE), new ItemStack(MekanismItems.BioFuel, 2));
 				}
 			}
-		} catch(Exception e) {}
-	}
-	
-	@Method(modid = "IC2")
-	public static void addIC2BronzeRecipe()
-	{
-		try {
-			Recipes.macerator.addRecipe(new RecipeInputOreDict("ingotBronze"), null, false, StackUtils.size(OreDictionary.getOres("dustBronze").get(0), 1));
 		} catch(Exception e) {}
 	}
 

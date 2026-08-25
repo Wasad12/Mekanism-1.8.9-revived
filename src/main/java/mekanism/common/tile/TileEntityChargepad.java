@@ -1,7 +1,4 @@
 package mekanism.common.tile;
-
-import ic2.api.item.ElectricItem;
-import ic2.api.item.IElectricItem;
 import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;
@@ -121,11 +118,6 @@ public class TileEntityChargepad extends TileEntityNoisyElectricBlock
 			if(itemstack.getItem() instanceof IEnergizedItem)
 			{
 				setEnergy(getEnergy() - EnergizedItemManager.charge(itemstack, getEnergy()));
-			}
-			else if(MekanismUtils.useIC2() && itemstack.getItem() instanceof IElectricItem)
-			{
-				double sent = ElectricItem.manager.charge(itemstack, (int)(getEnergy()*general.TO_IC2), 4, true, false)*general.FROM_IC2;
-				setEnergy(getEnergy() - sent);
 			}
 			else if(MekanismUtils.useRF() && itemstack.getItem() instanceof IEnergyContainerItem)
 			{

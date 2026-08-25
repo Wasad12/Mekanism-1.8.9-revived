@@ -1,7 +1,4 @@
 package mekanism.common.multipart;
-
-import ic2.api.energy.tile.IEnergySource;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -94,18 +91,6 @@ public class PartUniversalCable extends PartTransmitter<EnergyAcceptorWrapper, E
 							}
 
 							((IEnergyProvider)outputter).extractEnergy(side.getOpposite(), (int)(toDraw*general.TO_TE), false);
-						}
-						else if(MekanismUtils.useIC2() && outputter instanceof IEnergySource)
-						{
-							double received = Math.min(((IEnergySource)outputter).getOfferedEnergy() * general.FROM_IC2, canDraw);
-							double toDraw = received;
-
-							if(received > 0)
-							{
-								toDraw -= takeEnergy(received, true);
-							}
-
-							((IEnergySource)outputter).drawEnergy(toDraw * general.TO_IC2);
 						}
 					}
 				}

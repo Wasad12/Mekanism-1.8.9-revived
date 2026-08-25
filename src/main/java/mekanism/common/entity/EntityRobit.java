@@ -1,8 +1,4 @@
 package mekanism.common.entity;
-
-import ic2.api.item.ElectricItem;
-import ic2.api.item.IElectricItem;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -174,16 +170,6 @@ public class EntityRobit extends EntityCreature implements IInventory, ISustaine
 				if(inventory[27].getItem() instanceof IEnergizedItem)
 				{
 					setEnergy(getEnergy() + EnergizedItemManager.discharge(inventory[27], MAX_ELECTRICITY - getEnergy()));
-				}
-				else if(MekanismUtils.useIC2() && inventory[27].getItem() instanceof IElectricItem)
-				{
-					IElectricItem item = (IElectricItem)inventory[27].getItem();
-
-					if(item.canProvideEnergy(inventory[27]))
-					{
-						double gain = ElectricItem.manager.discharge(inventory[27], (MAX_ELECTRICITY - getEnergy())* general.TO_IC2, 4, true, true, false)* general.FROM_IC2;
-						setEnergy(getEnergy() + gain);
-					}
 				}
 				else if(MekanismUtils.useRF() && inventory[27].getItem() instanceof IEnergyContainerItem)
 				{

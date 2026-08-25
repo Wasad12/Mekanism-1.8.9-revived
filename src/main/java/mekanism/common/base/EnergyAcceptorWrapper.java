@@ -1,7 +1,4 @@
 package mekanism.common.base;
-
-import ic2.api.energy.tile.IEnergySink;
-import ic2.api.tile.IEnergyStorage;
 import mekanism.api.Coord4D;
 import mekanism.api.MekanismConfig.general;
 import mekanism.api.energy.IStrictEnergyAcceptor;
@@ -31,14 +28,6 @@ public abstract class EnergyAcceptorWrapper implements IStrictEnergyAcceptor
 		else if(MekanismUtils.useRF() && tileEntity instanceof IEnergyReceiver)
 		{
 			wrapper = new RFAcceptor((IEnergyReceiver)tileEntity);
-		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergySink)
-		{
-			wrapper = new IC2Acceptor((IEnergySink)tileEntity);
-		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergyStorage)
-		{
-			wrapper = new IC2StorageAcceptor((IEnergyStorage)tileEntity);
 		}
 		
 		if(wrapper != null)
@@ -158,123 +147,4 @@ public abstract class EnergyAcceptorWrapper implements IStrictEnergyAcceptor
 		}
 	}
 
-	public static class IC2Acceptor extends EnergyAcceptorWrapper
-	{
-		private IEnergySink acceptor;
-
-		public IC2Acceptor(IEnergySink ic2Acceptor)
-		{
-			acceptor = ic2Acceptor;
-		}
-
-		@Override
-		public double transferEnergyToAcceptor(EnumFacing side, double amount)
-		{
-			return amount - fromEU(acceptor.injectEnergy(side, Math.min(acceptor.getDemandedEnergy(), toEU(amount)), 0));
-		}
-
-		@Override
-		public boolean canReceiveEnergy(EnumFacing side)
-		{
-			return acceptor.acceptsEnergyFrom(null, side);
-		}
-
-		@Override
-		public double getEnergy()
-		{
-			return 0;
-		}
-
-		@Override
-		public void setEnergy(double energy)
-		{
-			return;
-		}
-
-		@Override
-		public double getMaxEnergy()
-		{
-			return 0;
-		}
-
-		@Override
-		public boolean needsEnergy(EnumFacing side)
-		{
-			return acceptor.getDemandedEnergy() > 0;
-		}
-
-		public double toEU(double joules)
-		{
-			return joules * general.TO_IC2;
-		}
-		
-		public double fromEU(double eu)
-		{
-			return eu * general.FROM_IC2;
-		}
-	}
-
-	public static class IC2StorageAcceptor extends EnergyAcceptorWrapper
-	{
-		private IEnergyStorage acceptor;
-
-		public IC2StorageAcceptor(IEnergyStorage ic2Storage)
-		{
-			acceptor = ic2Storage;
-		}
-
-		@Override
-		public double transferEnergyToAcceptor(EnumFacing side, double amount)
-		{
-			int stored = acceptor.getStored();
-			int toSend = (int)Math.floor(Math.min(amount*general.TO_IC2, acceptor.getCapacity() - stored));
-			if(toSend <= 0)
-			{
-				return 0;
-			}
-			acceptor.addEnergy(toSend);
-			int after = acceptor.getStored();
-			return (after - stored)*general.FROM_IC2;
-		}
-
-		@Override
-		public boolean canReceiveEnergy(EnumFacing side)
-		{
-			return acceptor.getStored() < acceptor.getCapacity();
-		}
-
-		@Override
-		public double getEnergy()
-		{
-			return acceptor.getStored()*general.FROM_IC2;
-		}
-
-		@Override
-		public void setEnergy(double energy)
-		{
-			acceptor.setStored((int)Math.round(energy*general.TO_IC2));
-		}
-
-		@Override
-		public double getMaxEnergy()
-		{
-			return acceptor.getCapacity()*general.FROM_IC2;
-		}
-
-		@Override
-		public boolean needsEnergy(EnumFacing side)
-		{
-			return acceptor.getStored() < acceptor.getCapacity();
-		}
-
-		public double toEU(double joules)
-		{
-			return joules * general.TO_IC2;
-		}
-
-		public double fromEU(double eu)
-		{
-			return eu * general.FROM_IC2;
-		}
-	}
 }

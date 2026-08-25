@@ -1,15 +1,10 @@
 package mekanism.common.item;
-
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
-
 import java.util.List;
 
 import mekanism.api.EnumColor;
 import mekanism.api.MekanismConfig.general;
 import mekanism.api.energy.IEnergizedItem;
 import mekanism.common.Mekanism;
-import mekanism.common.integration.IC2ItemManager;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.LangUtils;
 import mekanism.common.util.MekanismUtils;
@@ -22,10 +17,7 @@ import net.minecraftforge.fml.common.Optional.InterfaceList;
 import net.minecraftforge.fml.common.Optional.Method;
 import cofh.api.energy.IEnergyContainerItem;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "IC2")
-})
-public class ItemEnergized extends ItemMekanism implements IEnergizedItem, ISpecialElectricItem, IEnergyContainerItem
+public class ItemEnergized extends ItemMekanism implements IEnergizedItem, IEnergyContainerItem
 {
 	/** The maximum amount of energy this item can hold. */
 	public double MAX_ELECTRICITY;
@@ -69,48 +61,6 @@ public class ItemEnergized extends ItemMekanism implements IEnergizedItem, ISpec
 		ItemStack charged = new ItemStack(this);
 		setEnergy(charged, ((IEnergizedItem)charged.getItem()).getMaxEnergy(charged));
 		list.add(charged);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean canProvideEnergy(ItemStack itemStack)
-	{
-		return canSend(itemStack);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getChargedItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getEmptyItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getMaxCharge(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getTier(ItemStack itemStack)
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getTransferLimit(ItemStack itemStack)
-	{
-		return 0;
 	}
 
 	@Override
@@ -197,12 +147,5 @@ public class ItemEnergized extends ItemMekanism implements IEnergizedItem, ISpec
 	public int getMaxEnergyStored(ItemStack theItem)
 	{
 		return (int)Math.round(getMaxEnergy(theItem)* general.TO_TE);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public IElectricItemManager getManager(ItemStack itemStack)
-	{
-		return IC2ItemManager.getManager(this);
 	}
 }

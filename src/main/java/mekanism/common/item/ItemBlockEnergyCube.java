@@ -1,8 +1,4 @@
 package mekanism.common.item;
-
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +14,6 @@ import mekanism.common.Tier.BaseTier;
 import mekanism.common.Tier.EnergyCubeTier;
 import mekanism.common.base.ISustainedInventory;
 import mekanism.common.base.ITierItem;
-import mekanism.common.integration.IC2ItemManager;
 import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.security.ISecurityTile;
@@ -47,10 +42,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import cofh.api.energy.IEnergyContainerItem;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "IC2")
-})
-public class ItemBlockEnergyCube extends ItemBlock implements IEnergizedItem, ISpecialElectricItem, ISustainedInventory, IEnergyContainerItem, ISecurityItem, ITierItem
+public class ItemBlockEnergyCube extends ItemBlock implements IEnergizedItem, ISustainedInventory, IEnergyContainerItem, ISecurityItem, ITierItem
 {
 	public Block metaBlock;
 
@@ -162,34 +154,6 @@ public class ItemBlockEnergyCube extends ItemBlock implements IEnergizedItem, IS
 		}
 
 		itemstack.getTagCompound().setInteger("tier", tier.ordinal());
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public boolean canProvideEnergy(ItemStack itemStack)
-	{
-		return true;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getMaxCharge(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getTier(ItemStack itemStack)
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getTransferLimit(ItemStack itemStack)
-	{
-		return 0;
 	}
 
 	@Override
@@ -318,27 +282,6 @@ public class ItemBlockEnergyCube extends ItemBlock implements IEnergizedItem, IS
 	public double getDurabilityForDisplay(ItemStack stack)
 	{
 		return 1D-(getEnergy(stack)/getMaxEnergy(stack));
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public IElectricItemManager getManager(ItemStack itemStack)
-	{
-		return IC2ItemManager.getManager(this);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getChargedItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getEmptyItem(ItemStack itemStack)
-	{
-		return this;
 	}
 	
 	@Override

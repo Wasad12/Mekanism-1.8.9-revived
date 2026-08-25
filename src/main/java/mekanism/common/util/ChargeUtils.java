@@ -1,9 +1,4 @@
 package mekanism.common.util;
-
-import ic2.api.item.ElectricItem;
-import ic2.api.item.IElectricItem;
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
 import mekanism.api.MekanismConfig.general;
 import mekanism.api.energy.EnergizedItemManager;
 import mekanism.api.energy.IEnergizedItem;
@@ -30,16 +25,6 @@ public final class ChargeUtils
 			if(inv.getStackInSlot(slotID).getItem() instanceof IEnergizedItem)
 			{
 				storer.setEnergy(storer.getEnergy() + EnergizedItemManager.discharge(inv.getStackInSlot(slotID), storer.getMaxEnergy() - storer.getEnergy()));
-			}
-			else if(MekanismUtils.useIC2() && inv.getStackInSlot(slotID).getItem() instanceof IElectricItem)
-			{
-				IElectricItem item = (IElectricItem)inv.getStackInSlot(slotID).getItem();
-
-				if(item.canProvideEnergy(inv.getStackInSlot(slotID)))
-				{
-					double gain = ElectricItem.manager.discharge(inv.getStackInSlot(slotID), (int)((storer.getMaxEnergy() - storer.getEnergy())* general.TO_IC2), 4, true, true, false)* general.FROM_IC2;
-					storer.setEnergy(storer.getEnergy() + gain);
-				}
 			}
 			else if(MekanismUtils.useRF() && inv.getStackInSlot(slotID).getItem() instanceof IEnergyContainerItem)
 			{
@@ -79,11 +64,6 @@ public final class ChargeUtils
 			{
 				storer.setEnergy(storer.getEnergy() - EnergizedItemManager.charge(inv.getStackInSlot(slotID), storer.getEnergy()));
 			}
-			else if(MekanismUtils.useIC2() && inv.getStackInSlot(slotID).getItem() instanceof IElectricItem)
-			{
-				double sent = ElectricItem.manager.charge(inv.getStackInSlot(slotID), (int)(storer.getEnergy()* general.TO_IC2), 4, true, false)* general.FROM_IC2;
-				storer.setEnergy(storer.getEnergy() - sent);
-			}
 			else if(MekanismUtils.useRF() && inv.getStackInSlot(slotID).getItem() instanceof IEnergyContainerItem)
 			{
 				ItemStack itemStack = inv.getStackInSlot(slotID);
@@ -104,8 +84,7 @@ public final class ChargeUtils
 	 */
 	public static boolean canBeDischarged(ItemStack itemstack)
 	{
-		return (MekanismUtils.useIC2() && itemstack.getItem() instanceof IElectricItem && ((IElectricItem)itemstack.getItem()).canProvideEnergy(itemstack)) ||
-				(itemstack.getItem() instanceof IEnergizedItem && ((IEnergizedItem)itemstack.getItem()).canSend(itemstack)) ||
+		return (itemstack.getItem() instanceof IEnergizedItem && ((IEnergizedItem)itemstack.getItem()).canSend(itemstack)) ||
 				(MekanismUtils.useRF() && itemstack.getItem() instanceof IEnergyContainerItem && ((IEnergyContainerItem)itemstack.getItem()).extractEnergy(itemstack, 1, true) != 0) ||
 				itemstack.getItem() == Items.redstone;
 	}
@@ -117,8 +96,7 @@ public final class ChargeUtils
 	 */
 	public static boolean canBeCharged(ItemStack itemstack)
 	{
-		return (MekanismUtils.useIC2() && itemstack.getItem() instanceof IElectricItem) ||
-				(itemstack.getItem() instanceof IEnergizedItem && ((IEnergizedItem)itemstack.getItem()).canReceive(itemstack)) ||
+		return (itemstack.getItem() instanceof IEnergizedItem && ((IEnergizedItem)itemstack.getItem()).canReceive(itemstack)) ||
 				(MekanismUtils.useRF() && itemstack.getItem() instanceof IEnergyContainerItem && ((IEnergyContainerItem)itemstack.getItem()).receiveEnergy(itemstack, 1, true) != 0);
 	}
 
@@ -155,22 +133,6 @@ public final class ChargeUtils
 				return energyContainer.extractEnergy(itemstack, 1, true) > 0;
 			}
 		}
-		else if(itemstack.getItem() instanceof ISpecialElectricItem)
-		{
-			IElectricItemManager manager = ((ISpecialElectricItem)itemstack.getItem()).getManager(itemstack);
-			
-			if(manager != null)
-			{
-				if(chargeSlot)
-				{
-					return manager.charge(itemstack, 1, 3, true, true) > 0;
-				}
-				else {
-					return manager.discharge(itemstack, 1, 3, true, true, true) > 0;
-				}
-			}
-		}
-		
 		return true;
 	}
 }

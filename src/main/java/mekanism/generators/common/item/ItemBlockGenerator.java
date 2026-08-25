@@ -1,8 +1,4 @@
 package mekanism.generators.common.item;
-
-import ic2.api.item.IElectricItemManager;
-import ic2.api.item.ISpecialElectricItem;
-
 import java.util.List;
 
 import mekanism.api.EnumColor;
@@ -13,7 +9,6 @@ import mekanism.client.MekanismKeyHandler;
 import mekanism.common.base.ISustainedData;
 import mekanism.common.base.ISustainedInventory;
 import mekanism.common.base.ISustainedTank;
-import mekanism.common.integration.IC2ItemManager;
 import mekanism.common.security.ISecurityItem;
 import mekanism.common.security.ISecurityTile;
 import mekanism.common.security.ISecurityTile.SecurityMode;
@@ -64,10 +59,7 @@ import cofh.api.energy.IEnergyContainerItem;
  *
  */
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "IC2")
-})
-public class ItemBlockGenerator extends ItemBlock implements IEnergizedItem, ISpecialElectricItem, ISustainedInventory, ISustainedTank, IEnergyContainerItem, ISecurityItem
+public class ItemBlockGenerator extends ItemBlock implements IEnergizedItem, ISustainedInventory, ISustainedTank, IEnergyContainerItem, ISecurityItem
 {
 	public Block metaBlock;
 
@@ -259,48 +251,6 @@ public class ItemBlockGenerator extends ItemBlock implements IEnergizedItem, ISp
 	}
 
 	@Override
-	@Method(modid = "IC2")
-	public boolean canProvideEnergy(ItemStack itemStack)
-	{
-		return canSend(itemStack);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getChargedItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public Item getEmptyItem(ItemStack itemStack)
-	{
-		return this;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getMaxCharge(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public int getTier(ItemStack itemStack)
-	{
-		return 4;
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public double getTransferLimit(ItemStack itemStack)
-	{
-		return 0;
-	}
-
-	@Override
 	public void setInventory(NBTTagList nbtTags, Object... data)
 	{
 		if(data[0] instanceof ItemStack)
@@ -445,13 +395,6 @@ public class ItemBlockGenerator extends ItemBlock implements IEnergizedItem, ISp
 	public int getMaxEnergyStored(ItemStack theItem)
 	{
 		return (int)(getMaxEnergy(theItem)*general.TO_TE);
-	}
-
-	@Override
-	@Method(modid = "IC2")
-	public IElectricItemManager getManager(ItemStack itemStack)
-	{
-		return IC2ItemManager.getManager(this);
 	}
 	
 	@Override

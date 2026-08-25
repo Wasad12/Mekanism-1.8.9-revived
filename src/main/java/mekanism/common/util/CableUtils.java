@@ -10,7 +10,6 @@ import mekanism.api.energy.IStrictEnergyAcceptor;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.base.IEnergyWrapper;
 import mekanism.common.capabilities.Capabilities;
-import mekanism.common.integration.IC2Integration;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -24,7 +23,6 @@ public final class CableUtils
 	public static boolean isEnergyAcceptor(TileEntity tileEntity)
 	{
 		return tileEntity != null && (MekanismUtils.hasCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY, null) ||
-				(MekanismUtils.useIC2() && IC2Integration.isEnergyAcceptor(tileEntity)) ||
 				(MekanismUtils.useRF() && tileEntity instanceof IEnergyReceiver));
 	}
 
@@ -112,7 +110,6 @@ public final class CableUtils
 	{
 		return tileEntity != null && (
 				(MekanismUtils.hasCapability(tileEntity, Capabilities.CABLE_OUTPUTTER_CAPABILITY, side.getOpposite()) && MekanismUtils.getCapability(tileEntity, Capabilities.CABLE_OUTPUTTER_CAPABILITY, side.getOpposite()).canOutputTo(side.getOpposite())) ||
-				(MekanismUtils.useIC2() && IC2Integration.isOutputter(tileEntity, side)) ||
 				(MekanismUtils.useRF() && tileEntity instanceof IEnergyProvider && ((IEnergyConnection)tileEntity).canConnectEnergy(side.getOpposite()))
 		);
 	}
@@ -130,14 +127,6 @@ public final class CableUtils
 			{
 				return true;
 			}
-		}
-		else if(MekanismUtils.useIC2() && IC2Integration.isAcceptor(orig, tileEntity, side))
-		{
-			return true;
-		}
-		else if(MekanismUtils.useIC2() && IC2Integration.isEnergyAcceptor(tileEntity))
-		{
-			return true;
 		}
 		else if(MekanismUtils.hasCapability(tileEntity, Capabilities.CABLE_OUTPUTTER_CAPABILITY, side.getOpposite()))
 		{
@@ -250,10 +239,6 @@ public final class CableUtils
 				int used = handler.receiveEnergy(side.getOpposite(), (int)Math.round(currentSending*general.TO_TE), false);
 				sent += used*general.FROM_TE;
 			}
-		}
-		else if(MekanismUtils.useIC2())
-		{
-			sent += IC2Integration.emitEnergy(from, tileEntity, side, currentSending);
 		}
 
 		return sent;

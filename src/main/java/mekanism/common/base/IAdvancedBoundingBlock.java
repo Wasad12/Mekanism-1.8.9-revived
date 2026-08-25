@@ -1,6 +1,4 @@
 package mekanism.common.base;
-
-import ic2.api.energy.tile.IEnergySink;
 import mekanism.api.Coord4D;
 import mekanism.api.IConfigCardAccess.ISpecialConfigData;
 import mekanism.api.energy.IStrictEnergyAcceptor;
@@ -16,10 +14,7 @@ import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyProvider;
 import cofh.api.energy.IEnergyReceiver;
 
-@InterfaceList({
-	@Interface(iface = "ic2.api.energy.tile.IEnergySink", modid = "IC2"),
-})
-public interface IAdvancedBoundingBlock extends IBoundingBlock, ISidedInventory, IEnergySink, IStrictEnergyAcceptor, IStrictEnergyStorage, IEnergyProvider, IEnergyReceiver, IEnergyHandler, IComputerIntegration, ISpecialConfigData, ISecurityTile
+public interface IAdvancedBoundingBlock extends IBoundingBlock, ISidedInventory, IStrictEnergyAcceptor, IStrictEnergyStorage, IEnergyProvider, IEnergyReceiver, IEnergyHandler, IComputerIntegration, ISpecialConfigData, ISecurityTile
 {
 	public int[] getBoundSlots(Coord4D location, EnumFacing side);
 
