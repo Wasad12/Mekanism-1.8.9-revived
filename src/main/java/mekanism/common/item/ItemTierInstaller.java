@@ -3,7 +3,6 @@ package mekanism.common.item;
 import java.util.List;
 
 import mekanism.common.Tier.BaseTier;
-import mekanism.common.Tier.FactoryTier;
 import mekanism.common.base.IMetaItem;
 import mekanism.common.base.ITierUpgradeable;
 import mekanism.common.tile.TileEntityBasicBlock;
@@ -16,9 +15,9 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 
-public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
+public class ItemTierInstaller extends ItemMekanism implements IMetaItem
 {
-	public ItemFactoryInstaller()
+	public ItemTierInstaller()
 	{
 		super();
 		setMaxStackSize(1);
@@ -28,68 +27,64 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 	@Override
 	public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ)
 	{
-		if(world.isRemote)
+		if(world.isRemote) 
 		{
 			return false;
 		}
-
+		
 		TileEntity tile = world.getTileEntity(pos);
-
-		if(tile instanceof TileEntityBasicBlock && ((TileEntityBasicBlock)tile).playersUsing.size() > 0)
-		{
-			return true;
-		}
-
+		BaseTier tier = BaseTier.values()[stack.getItemDamage()];
+		
 		if(tile instanceof ITierUpgradeable)
 		{
-			FactoryTier factoryTier = FactoryTier.values()[stack.getItemDamage()];
-			BaseTier baseTier = factoryTier.getBaseTier();
-
-			if(((ITierUpgradeable)tile).upgrade(baseTier))
+			if(tile instanceof TileEntityBasicBlock && ((TileEntityBasicBlock)tile).playersUsing.size() > 0)
+			{
+				return true;
+			}
+			
+			if(((ITierUpgradeable)tile).upgrade(tier))
 			{
 				if(!player.capabilities.isCreativeMode)
 				{
 					stack.stackSize--;
 				}
-
+				
 				return true;
 			}
-
+			
 			return false;
 		}
-
+		
 		return false;
-	}
-	
-	private int getOutputSlot(FactoryTier tier, int operation)
-	{
-		return 5+tier.processes+operation;
 	}
 	
 	@Override
 	public String getTexture(int meta)
 	{
-		return FactoryTier.values()[meta].getBaseTier().getSimpleName() + "FactoryInstaller";
+		return BaseTier.values()[meta].getSimpleName() + "TierInstaller";
 	}
 	
 	@Override
 	public int getVariants()
 	{
-		return FactoryTier.values().length;
+		return BaseTier.values().length-1;
 	}
 
 	@Override
 	public void getSubItems(Item item, CreativeTabs tabs, List<ItemStack> itemList)
 	{
-		for(FactoryTier tier : FactoryTier.values())
+		for(BaseTier tier : BaseTier.values())
 		{
-			itemList.add(new ItemStack(item, 1, tier.ordinal()));
+			if(tier.isObtainable())
+			{
+				itemList.add(new ItemStack(item, 1, tier.ordinal()));
+			}
 		}
 	}
 
 	@Override
 	public String getUnlocalizedName(ItemStack item)
 	{
-		return "item." + BaseTier.values()[item.getItemDamage()].getSimpleName().toLowerCase() + "FactoryInstaller";
+		return "item." + BaseTier.values()[item.getItemDamage()].getSimpleName().toLowerCase() + "TierInstaller";
 	}
 }

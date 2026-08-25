@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import mekanism.api.Coord4D;
 import mekanism.common.PacketHandler;
 import mekanism.common.base.ITileNetwork;
+import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.util.MekanismUtils;
@@ -34,39 +35,65 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 			return null;
 		}
 		
-		World world = player.worldObj;
-		BlockPos pos = message.coord4D.getPos();
-		
-		TileEntity tileEntity = message.coord4D.getTileEntity(world);
-		IBlockState state = world.getBlockState(pos);
-		TileEntity expected = state.getBlock().createTileEntity(world, state);
-		
-		if(expected != null && (tileEntity == null || tileEntity.getClass() != expected.getClass()))
-		{
-			//The client has a stale or missing tile entity. This happens after a machine to factory
-			//conversion, where the block metadata changes but the block ID does not, so the client
-			//side tile entity is never replaced by the block update. Replace it with the correct one.
-			if(tileEntity != null)
+		PacketHandler.handlePacket(new Runnable() {
+			@Override
+			public void run()
 			{
-				tileEntity.invalidate();
+				World world = player.worldObj;
+				BlockPos pos = message.coord4D.getPos();
+				
+				TileEntity tileEntity = message.coord4D.getTileEntity(world);
+				TileEntity expected = null;
+				
+				if(message.expectedMachineType != null)
+				{
+					Block block = world.getBlockState(pos).getBlock();
+					if(block instanceof mekanism.common.block.BlockMachine)
+					{
+						mekanism.common.block.BlockMachine machineBlock = (mekanism.common.block.BlockMachine)block;
+						IBlockState expectedState = machineBlock.getDefaultState().withProperty(machineBlock.getTypeProperty(), message.expectedMachineType);
+						expected = machineBlock.createTileEntity(world, expectedState);
+					}
+					else
+					{
+						IBlockState state = world.getBlockState(pos);
+						expected = state.getBlock().createTileEntity(world, state);
+					}
+				}
+				else
+				{
+					IBlockState state = world.getBlockState(pos);
+					expected = state.getBlock().createTileEntity(world, state);
+				}
+				
+				if(expected != null && (tileEntity == null || tileEntity.getClass() != expected.getClass()))
+				{
+					//The client has a stale or missing tile entity. This happens after a machine to factory
+					//conversion, where the block metadata changes but the block ID does not, so the client
+					//side tile entity is never replaced by the block update. Replace it with the correct one.
+					if(tileEntity != null)
+					{
+						tileEntity.invalidate();
+					}
+					
+					world.setTileEntity(pos, expected);
+					tileEntity = expected;
+				}
+				
+				if(tileEntity != null && MekanismUtils.hasCapability(tileEntity, Capabilities.TILE_NETWORK_CAPABILITY, null))
+				{
+					ITileNetwork network = MekanismUtils.getCapability(tileEntity, Capabilities.TILE_NETWORK_CAPABILITY, null);
+					
+					try {
+						network.handlePacketData(message.storedBuffer);
+					} catch(Exception e) {
+						e.printStackTrace();
+					}
+				}
+				
+				message.storedBuffer.release();
 			}
-			
-			world.setTileEntity(pos, expected);
-			tileEntity = expected;
-		}
-		
-		if(tileEntity != null && MekanismUtils.hasCapability(tileEntity, Capabilities.TILE_NETWORK_CAPABILITY, null))
-		{
-			ITileNetwork network = MekanismUtils.getCapability(tileEntity, Capabilities.TILE_NETWORK_CAPABILITY, null);
-			
-			try {
-				network.handlePacketData(message.storedBuffer);
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
-		message.storedBuffer.release();
+		}, player);
 		
 		return null;
 	}
@@ -79,12 +106,21 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 		
 		public ByteBuf storedBuffer = null;
 		
+		public MachineType expectedMachineType = null;
+		
 		public TileEntityMessage() {}
 	
 		public TileEntityMessage(Coord4D coord, ArrayList<Object> params)
 		{
 			coord4D = coord;
 			parameters = params;
+		}
+		
+		public TileEntityMessage(Coord4D coord, ArrayList<Object> params, MachineType type)
+		{
+			coord4D = coord;
+			parameters = params;
+			expectedMachineType = type;
 		}
 	
 		@Override
@@ -101,6 +137,15 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 			}
 			
 			PacketHandler.encode(new Object[] {parameters}, dataStream);
+			
+			if(expectedMachineType != null)
+			{
+				dataStream.writeInt(expectedMachineType.ordinal());
+			}
+			else
+			{
+				dataStream.writeInt(-1);
+			}
 		}
 	
 		@Override
@@ -108,7 +153,21 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 		{
 			coord4D = Coord4D.read(dataStream);
 			
-			storedBuffer = dataStream.copy();
+			int totalRemaining = dataStream.readableBytes();
+			if(totalRemaining >= 4)
+			{
+				storedBuffer = dataStream.copy(dataStream.readerIndex(), totalRemaining - 4);
+				dataStream.readerIndex(dataStream.readerIndex() + totalRemaining - 4);
+				int typeOrdinal = dataStream.readInt();
+				if(typeOrdinal >= 0)
+				{
+					expectedMachineType = MachineType.values()[typeOrdinal];
+				}
+			}
+			else
+			{
+				storedBuffer = dataStream.copy();
+			}
 		}
 	}
 }

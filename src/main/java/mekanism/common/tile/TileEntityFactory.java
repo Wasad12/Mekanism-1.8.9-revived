@@ -55,6 +55,7 @@ import mekanism.common.tile.component.TileComponentEjector;
 import mekanism.common.tile.component.TileComponentSecurity;
 import mekanism.common.tile.component.TileComponentUpgrade;
 import mekanism.common.util.ChargeUtils;
+import mekanism.common.util.FactoryUpgradeUtils;
 import mekanism.common.util.InventoryUtils;
 import mekanism.common.util.ItemDataUtils;
 import mekanism.common.util.MekanismUtils;
@@ -183,76 +184,11 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 	
 	public void upgrade()
 	{
-		worldObj.setBlockToAir(getPos());
-		worldObj.setBlockState(getPos(), MekanismBlocks.MachineBlock.getStateFromMeta(5+ tier.ordinal()+1), 3);
-		
-		TileEntityFactory factory = (TileEntityFactory)worldObj.getTileEntity(getPos());
-		
-		//Basic
-		factory.facing = facing;
-		factory.clientFacing = clientFacing;
-		factory.ticker = ticker;
-		factory.redstone = redstone;
-		factory.redstoneLastTick = redstoneLastTick;
-		factory.doAutoSync = doAutoSync;
-		
-		//Electric
-		factory.electricityStored = electricityStored;
-		
-		//Noisy
-		factory.soundURL = soundURL;
-		
-		//Factory
-		
-		for(int i = 0; i < tier.processes; i++)
-		{
-			factory.progress[i] = progress[i];
-		}
-		
-		factory.recipeTicks = recipeTicks;
-		factory.clientActive = clientActive;
-		factory.isActive = isActive;
-		factory.updateDelay = updateDelay;
-		factory.prevEnergy = prevEnergy;
-		factory.gasTank.setGas(gasTank.getGas());
-		factory.sorting = sorting;
-		factory.controlType = controlType;
-		factory.upgradeComponent.readFrom(upgradeComponent);
-		factory.ejectorComponent.readFrom(ejectorComponent);
-		factory.configComponent.readFrom(configComponent);
-		factory.ejectorComponent.setOutputData(TransmissionType.ITEM, factory.configComponent.getOutputs(TransmissionType.ITEM).get(2));
-		factory.recipeType = recipeType;
-		factory.upgradeComponent.setSupported(Upgrade.GAS, recipeType.fuelEnergyUpgrades());
-		factory.securityComponent.readFrom(securityComponent);
-		
-		for(int i = 0; i < tier.processes+5; i++)
-		{
-			factory.inventory[i] = inventory[i];
-		}
-		
-		for(int i = 0; i < tier.processes; i++)
-		{
-			int output = getOutputSlot(i);
-			
-			if(inventory[output] != null)
-			{
-				int newOutput = 5+factory.tier.processes+i;
-				
-				factory.inventory[newOutput] = inventory[output];
-			}
-		}
-		
-		for(Upgrade upgrade : factory.upgradeComponent.getSupportedTypes())
-		{
-			factory.recalculateUpgradables(upgrade);
-		}
-		
-		factory.upgraded = true;
-		
-		factory.markDirty();
-		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), new Range4D(Coord4D.get(factory)));
-		worldObj.notifyNeighborsOfStateChange(factory.getPos(), factory.getBlockType());
-		MekanismUtils.updateBlock(worldObj, factory.getPos());
+		FactoryTier nextTier = FactoryTier.values()[tier.ordinal()+1];
+		TileEntityFactory factory = FactoryUpgradeUtils.createFactory(worldObj, getPos(), nextTier);
+		if(factory == null) return;
+		FactoryUpgradeUtils.copyFactoryData(this, factory);
+		FactoryUpgradeUtils.finishUpgrade(worldObj, factory);
 	}
 
 	@Override
