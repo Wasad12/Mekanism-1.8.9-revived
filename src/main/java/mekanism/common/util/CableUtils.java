@@ -1,12 +1,5 @@
 package mekanism.common.util;
 
-import ic2.api.energy.EnergyNet;
-import ic2.api.energy.tile.IEnergyAcceptor;
-import ic2.api.energy.tile.IEnergyEmitter;
-import ic2.api.energy.tile.IEnergySink;
-import ic2.api.energy.tile.IEnergySource;
-import ic2.api.tile.IEnergyStorage;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -17,6 +10,7 @@ import mekanism.api.energy.IStrictEnergyAcceptor;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.base.IEnergyWrapper;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.integration.IC2Integration;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -30,7 +24,7 @@ public final class CableUtils
 	public static boolean isEnergyAcceptor(TileEntity tileEntity)
 	{
 		return tileEntity != null && (MekanismUtils.hasCapability(tileEntity, Capabilities.ENERGY_ACCEPTOR_CAPABILITY, null) ||
-				(MekanismUtils.useIC2() && (tileEntity instanceof IEnergySink || tileEntity instanceof IEnergyStorage)) ||
+				(MekanismUtils.useIC2() && IC2Integration.isEnergyAcceptor(tileEntity)) ||
 				(MekanismUtils.useRF() && tileEntity instanceof IEnergyReceiver));
 	}
 
@@ -118,7 +112,7 @@ public final class CableUtils
 	{
 		return tileEntity != null && (
 				(MekanismUtils.hasCapability(tileEntity, Capabilities.CABLE_OUTPUTTER_CAPABILITY, side.getOpposite()) && MekanismUtils.getCapability(tileEntity, Capabilities.CABLE_OUTPUTTER_CAPABILITY, side.getOpposite()).canOutputTo(side.getOpposite())) ||
-				(MekanismUtils.useIC2() && tileEntity instanceof IEnergySource && ((IEnergySource)tileEntity).emitsEnergyTo(null, side.getOpposite())) ||
+				(MekanismUtils.useIC2() && IC2Integration.isOutputter(tileEntity, side)) ||
 				(MekanismUtils.useRF() && tileEntity instanceof IEnergyProvider && ((IEnergyConnection)tileEntity).canConnectEnergy(side.getOpposite()))
 		);
 	}
@@ -137,14 +131,11 @@ public final class CableUtils
 				return true;
 			}
 		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergyAcceptor)
+		else if(MekanismUtils.useIC2() && IC2Integration.isAcceptor(orig, tileEntity, side))
 		{
-			if(((IEnergyAcceptor)tileEntity).acceptsEnergyFrom(null, side.getOpposite()))
-			{
-				return true;
-			}
+			return true;
 		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergyStorage)
+		else if(MekanismUtils.useIC2() && IC2Integration.isEnergyAcceptor(tileEntity))
 		{
 			return true;
 		}
@@ -260,28 +251,9 @@ public final class CableUtils
 				sent += used*general.FROM_TE;
 			}
 		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergySink)
+		else if(MekanismUtils.useIC2())
 		{
-			if(((IEnergySink)tileEntity).acceptsEnergyFrom((IEnergyEmitter)from, side.getOpposite()))
-			{
-				double toSend = Math.min(currentSending, EnergyNet.instance.getPowerFromTier(((IEnergySink)tileEntity).getSinkTier())*general.FROM_IC2);
-				toSend = Math.min(toSend, ((IEnergySink)tileEntity).getDemandedEnergy()*general.FROM_IC2);
-				sent += (toSend - (((IEnergySink)tileEntity).injectEnergy(side.getOpposite(), toSend*general.TO_IC2, 0)*general.FROM_IC2));
-			}
-		}
-		else if(MekanismUtils.useIC2() && tileEntity instanceof IEnergyStorage)
-		{
-			IEnergyStorage storage = (IEnergyStorage)tileEntity;
-			int maxReceive = (int)Math.floor(currentSending*general.TO_IC2);
-			int stored = storage.getStored();
-			int capacity = storage.getCapacity();
-			int toSend = Math.min(maxReceive, capacity - stored);
-			if(toSend > 0)
-			{
-				storage.addEnergy(toSend);
-				int after = storage.getStored();
-				sent += (after - stored)*general.FROM_IC2;
-			}
+			sent += IC2Integration.emitEnergy(from, tileEntity, side, currentSending);
 		}
 
 		return sent;
