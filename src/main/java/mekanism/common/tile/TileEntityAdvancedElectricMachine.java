@@ -157,7 +157,6 @@ public abstract class TileEntityAdvancedElectricMachine<RECIPE extends AdvancedM
 		factory.upgraded = true;
 		
 		factory.markDirty();
-		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), new Range4D(Coord4D.get(factory)));
 	}
 
 	@Override

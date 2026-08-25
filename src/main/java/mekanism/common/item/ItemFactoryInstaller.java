@@ -1,15 +1,11 @@
 package mekanism.common.item;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import mekanism.api.Coord4D;
-import mekanism.common.Mekanism;
 import mekanism.common.Tier.BaseTier;
 import mekanism.common.Tier.FactoryTier;
 import mekanism.common.base.IFactory.RecipeType;
 import mekanism.common.base.IMetaItem;
-import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.tile.TileEntityAdvancedElectricMachine;
 import mekanism.common.tile.TileEntityBasicBlock;
 import mekanism.common.tile.TileEntityElectricMachine;
@@ -19,7 +15,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -65,7 +60,7 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 				
 				if(!player.capabilities.isCreativeMode)
 				{
-					stack.stackSize = 0;
+					stack.stackSize--;
 				}
 				
 				return true;
