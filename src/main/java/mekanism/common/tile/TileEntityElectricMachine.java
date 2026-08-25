@@ -1,12 +1,20 @@
 package mekanism.common.tile;
 
+import java.util.ArrayList;
+
+import mekanism.api.Coord4D;
 import mekanism.api.EnumColor;
+import mekanism.api.Range4D;
 import mekanism.api.transmitters.TransmissionType;
+import mekanism.common.Mekanism;
 import mekanism.common.MekanismBlocks;
 import mekanism.common.MekanismItems;
 import mekanism.common.SideData;
+import mekanism.common.Tier.BaseTier;
 import mekanism.common.Upgrade;
 import mekanism.common.base.IFactory.RecipeType;
+import mekanism.common.base.ITierUpgradeable;
+import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.recipe.RecipeHandler;
 import mekanism.common.recipe.inputs.ItemStackInput;
 import mekanism.common.recipe.machines.BasicMachineRecipe;
@@ -21,7 +29,7 @@ import mekanism.common.util.MekanismUtils.ResourceType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 
-public abstract class TileEntityElectricMachine<RECIPE extends BasicMachineRecipe<RECIPE>> extends TileEntityBasicMachine<ItemStackInput, ItemStackOutput, RECIPE>
+public abstract class TileEntityElectricMachine<RECIPE extends BasicMachineRecipe<RECIPE>> extends TileEntityBasicMachine<ItemStackInput, ItemStackOutput, RECIPE> implements ITierUpgradeable
 {
 	/**
 	 * A simple electrical machine. This has 3 slots - the input slot (0), the energy slot (1),
@@ -111,6 +119,26 @@ public abstract class TileEntityElectricMachine<RECIPE extends BasicMachineRecip
 		factory.upgraded = true;
 		
 		factory.markDirty();
+		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), new Range4D(Coord4D.get(factory)));
+	}
+	
+	@Override
+	public boolean upgrade(BaseTier upgradeTier)
+	{
+		if(upgradeTier != BaseTier.BASIC)
+		{
+			return false;
+		}
+		
+		RecipeType type = RecipeType.getFromMachine(getBlockType(), getBlockMetadata());
+		
+		if(type != null)
+		{
+			upgrade(type);
+			return true;
+		}
+		
+		return false;
 	}
 
 	@Override
