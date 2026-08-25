@@ -1,0 +1,488 @@
+package mekanism.generators.common.tile;
+
+import io.netty.buffer.ByteBuf;
+
+import java.util.ArrayList;
+
+import mekanism.api.Coord4D;
+import mekanism.api.IHeatTransfer;
+import mekanism.api.MekanismConfig.generators;
+import mekanism.common.base.ISustainedData;
+import mekanism.common.capabilities.Capabilities;
+import mekanism.common.util.ChargeUtils;
+import mekanism.common.util.FluidContainerUtils;
+import mekanism.common.util.FluidContainerUtils.FluidChecker;
+import mekanism.common.util.HeatUtils;
+import mekanism.common.util.ItemDataUtils;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.PipeUtils;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityFurnace;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidContainerRegistry;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.FluidTankInfo;
+import net.minecraftforge.fluids.IFluidContainerItem;
+import net.minecraftforge.fluids.IFluidHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+
+public class TileEntityHeatGenerator extends TileEntityGenerator implements IFluidHandler, ISustainedData, IHeatTransfer
+{
+	/** The FluidTank for this generator. */
+	public FluidTank lavaTank = new FluidTank(24000);
+
+	public double temperature = 0;
+
+	public double thermalEfficiency = 0.5D;
+
+	public double invHeatCapacity = 1;
+
+	public double heatToAbsorb = 0;
+	
+	public double producingEnergy;
+	
+	public double lastTransferLoss;
+	public double lastEnvironmentLoss;
+
+	public TileEntityHeatGenerator()
+	{
+		super("heat", "HeatGenerator", 160000, generators.heatGeneration*2);
+		inventory = new ItemStack[2];
+	}
+
+	@Override
+	public void onUpdate()
+	{
+		super.onUpdate();
+
+		if(!worldObj.isRemote)
+		{
+			ChargeUtils.charge(1, this);
+
+			if(inventory[0] != null)
+			{
+				FluidStack fluid = FluidContainerRegistry.getFluidForFilledItem(inventory[0]);
+				
+				if(inventory[0].getItem() instanceof IFluidContainerItem)
+				{
+					lavaTank.fill(FluidContainerUtils.extractFluid(lavaTank, inventory[0], FluidChecker.check(FluidRegistry.LAVA)), true);
+				}
+				else if(fluid != null)
+				{
+					if(fluid != null && fluid.getFluid() == FluidRegistry.LAVA)
+					{
+						if(lavaTank.getFluid() == null || lavaTank.getFluid().amount+fluid.amount <= lavaTank.getCapacity())
+						{
+							lavaTank.fill(fluid, true);
+	
+							if(inventory[0].getItem().getContainerItem(inventory[0]) != null)
+							{
+								inventory[0] = inventory[0].getItem().getContainerItem(inventory[0]);
+							}
+							else {
+								inventory[0].stackSize--;
+							}
+	
+							if(inventory[0].stackSize == 0)
+							{
+								inventory[0] = null;
+							}
+						}
+					}
+				}
+				else {
+					int fuel = getFuel(inventory[0]);
+
+					if(fuel > 0)
+					{
+						int fuelNeeded = lavaTank.getCapacity() - (lavaTank.getFluid() != null ? lavaTank.getFluid().amount : 0);
+
+						if(fuel <= fuelNeeded)
+						{
+							lavaTank.fill(new FluidStack(FluidRegistry.LAVA, fuel), true);
+
+							if(inventory[0].getItem().getContainerItem(inventory[0]) != null)
+							{
+								inventory[0] = inventory[0].getItem().getContainerItem(inventory[0]);
+							}
+							else {
+								inventory[0].stackSize--;
+							}
+
+							if(inventory[0].stackSize == 0)
+							{
+								inventory[0] = null;
+							}
+						}
+					}
+				}
+			}
+			
+			double prev = getEnergy();
+
+			transferHeatTo(getBoost());
+
+			if(canOperate())
+			{
+				setActive(true);
+
+				lavaTank.drain(10, true);
+				transferHeatTo(generators.heatGeneration);
+			}
+			else {
+				setActive(false);
+			}
+			
+			double[] loss = simulateHeat();
+			applyTemperatureChange();
+			
+			lastTransferLoss = loss[0];
+			lastEnvironmentLoss = loss[1];
+			
+			producingEnergy = getEnergy()-prev;
+		}
+	}
+
+	@Override
+	public boolean isItemValidForSlot(int slotID, ItemStack itemstack)
+	{
+		if(slotID == 0)
+		{
+			return getFuel(itemstack) > 0 || (FluidContainerRegistry.getFluidForFilledItem(itemstack) != null && FluidContainerRegistry.getFluidForFilledItem(itemstack).getFluid() == FluidRegistry.LAVA);
+		}
+		else if(slotID == 1)
+		{
+			return ChargeUtils.canBeCharged(itemstack);
+		}
+
+		return true;
+	}
+
+	@Override
+	public boolean canOperate()
+	{
+		return electricityStored < BASE_MAX_ENERGY && lavaTank.getFluid() != null && lavaTank.getFluid().amount >= 10 && MekanismUtils.canFunction(this);
+	}
+
+	@Override
+	public void readFromNBT(NBTTagCompound nbtTags)
+	{
+		super.readFromNBT(nbtTags);
+
+		if(nbtTags.hasKey("lavaTank"))
+		{
+			lavaTank.readFromNBT(nbtTags.getCompoundTag("lavaTank"));
+		}
+	}
+
+	@Override
+	public void writeToNBT(NBTTagCompound nbtTags)
+	{
+		super.writeToNBT(nbtTags);
+
+		if(lavaTank.getFluid() != null)
+		{
+			nbtTags.setTag("lavaTank", lavaTank.writeToNBT(new NBTTagCompound()));
+		}
+	}
+
+	@Override
+	public boolean canExtractItem(int slotID, ItemStack itemstack, EnumFacing side)
+	{
+		if(slotID == 1)
+		{
+			return ChargeUtils.canBeOutputted(itemstack, true);
+		}
+		else if(slotID == 0)
+		{
+			return FluidContainerRegistry.isEmptyContainer(itemstack);
+		}
+
+		return false;
+	}
+
+	public double getBoost()
+	{
+		int lavaBoost = 0;
+		double netherBoost = 0D;
+
+		for(EnumFacing side : EnumFacing.VALUES)
+		{
+			Coord4D coord = Coord4D.get(this).offset(side);
+			
+			if(isLava(coord.getPos()))
+			{
+				lavaBoost++;
+			}
+		}
+
+		if(worldObj.provider.getDimensionId() == -1)
+		{
+			netherBoost = generators.heatGenerationNether;
+		}
+
+		return (generators.heatGenerationLava * lavaBoost) + netherBoost;
+	}
+	
+	private boolean isLava(BlockPos pos)
+	{
+		return worldObj.getBlockState(pos).getBlock() == Blocks.lava;
+	}
+
+	public int getFuel(ItemStack itemstack)
+	{
+		if(itemstack.getItem() == Items.lava_bucket)
+		{
+			return 1000;
+		}
+
+		return TileEntityFurnace.getItemBurnTime(itemstack)/2;
+	}
+
+	@Override
+	public int[] getSlotsForFace(EnumFacing side)
+	{
+		return side == MekanismUtils.getRight(facing) ? new int[] {1} : new int[] {0};
+	}
+
+	/**
+	 * Gets the scaled fuel level for the GUI.
+	 * @param i - multiplier
+	 * @return
+	 */
+	public int getScaledFuelLevel(int i)
+	{
+		return (lavaTank.getFluid() != null ? lavaTank.getFluid().amount : 0)*i / lavaTank.getCapacity();
+	}
+
+	@Override
+	public void handlePacketData(ByteBuf dataStream)
+	{
+		super.handlePacketData(dataStream);
+		
+		if(FMLCommonHandler.instance().getEffectiveSide().isClient())
+		{
+			producingEnergy = dataStream.readDouble();
+			
+			lastTransferLoss = dataStream.readDouble();
+			lastEnvironmentLoss = dataStream.readDouble();
+	
+			int amount = dataStream.readInt();
+	
+			if(amount != 0)
+			{
+				lavaTank.setFluid(new FluidStack(FluidRegistry.LAVA, amount));
+			}
+			else {
+				lavaTank.setFluid(null);
+			}
+		}
+	}
+
+	@Override
+	public ArrayList getNetworkedData(ArrayList data)
+	{
+		super.getNetworkedData(data);
+		
+		data.add(producingEnergy);
+		
+		data.add(lastTransferLoss);
+		data.add(lastEnvironmentLoss);
+
+		if(lavaTank.getFluid() != null)
+		{
+			data.add(lavaTank.getFluid().amount);
+		}
+		else {
+			data.add(0);
+		}
+
+		return data;
+	}
+
+    private static final String[] methods = new String[] {"getEnergy", "getOutput", "getMaxEnergy", "getEnergyNeeded", "getFuel", "getFuelNeeded"};
+
+	@Override
+	public String[] getMethods()
+	{
+		return methods;
+	}
+
+	@Override
+	public Object[] invoke(int method, Object[] arguments) throws Exception
+	{
+		switch(method)
+		{
+			case 0:
+				return new Object[] {electricityStored};
+			case 1:
+				return new Object[] {output};
+			case 2:
+				return new Object[] {BASE_MAX_ENERGY};
+			case 3:
+				return new Object[] {(BASE_MAX_ENERGY -electricityStored)};
+			case 4:
+				return new Object[] {lavaTank.getFluid() != null ? lavaTank.getFluid().amount : 0};
+			case 5:
+				return new Object[] {lavaTank.getCapacity()-(lavaTank.getFluid() != null ? lavaTank.getFluid().amount : 0)};
+			default:
+				throw new NoSuchMethodException();
+		}
+	}
+
+	@Override
+	public int fill(EnumFacing from, FluidStack resource, boolean doFill)
+	{
+		if(resource.getFluid() == FluidRegistry.LAVA && from != facing)
+		{
+			return lavaTank.fill(resource, doFill);
+		}
+
+		return 0;
+	}
+
+	@Override
+	public FluidStack drain(EnumFacing from, int maxDrain, boolean doDrain)
+	{
+		return null;
+	}
+
+	@Override
+	public FluidStack drain(EnumFacing from, FluidStack resource, boolean doDrain)
+	{
+		return null;
+	}
+
+	@Override
+	public boolean canFill(EnumFacing from, Fluid fluid)
+	{
+		return fluid == FluidRegistry.LAVA && from != facing;
+	}
+
+	@Override
+	public boolean canDrain(EnumFacing from, Fluid fluid)
+	{
+		return false;
+	}
+
+	@Override
+	public FluidTankInfo[] getTankInfo(EnumFacing from)
+	{
+		if(from == facing)
+		{
+			return PipeUtils.EMPTY;
+		}
+		
+		return new FluidTankInfo[] {lavaTank.getInfo()};
+	}
+
+	@Override
+	public void writeSustainedData(ItemStack itemStack) 
+	{
+		if(lavaTank.getFluid() != null)
+		{
+			ItemDataUtils.setCompound(itemStack, "lavaTank", lavaTank.getFluid().writeToNBT(new NBTTagCompound()));
+		}
+	}
+
+	@Override
+	public void readSustainedData(ItemStack itemStack) 
+	{
+		lavaTank.setFluid(FluidStack.loadFluidStackFromNBT(ItemDataUtils.getCompound(itemStack, "lavaTank")));
+	}
+
+	@Override
+	public double getTemp()
+	{
+		return temperature;
+	}
+
+	@Override
+	public double getInverseConductionCoefficient()
+	{
+		return 1;
+	}
+
+	@Override
+	public double getInsulationCoefficient(EnumFacing side)
+	{
+		return canConnectHeat(side) ? 0 : 10000;
+	}
+
+	@Override
+	public void transferHeatTo(double heat)
+	{
+		heatToAbsorb += heat;
+	}
+
+	@Override
+	public double[] simulateHeat()
+	{
+		if(getTemp() > 0)
+		{
+			double carnotEfficiency = getTemp() / (getTemp() + IHeatTransfer.AMBIENT_TEMP);
+			double heatLost = thermalEfficiency * getTemp();
+			double workDone = heatLost * carnotEfficiency;
+			transferHeatTo(-heatLost);
+			setEnergy(getEnergy() + workDone);
+		}
+		
+		return HeatUtils.simulate(this);
+	}
+
+	@Override
+	public double applyTemperatureChange()
+	{
+		temperature += invHeatCapacity * heatToAbsorb;
+		heatToAbsorb = 0;
+		return temperature;
+	}
+
+	@Override
+	public boolean canConnectHeat(EnumFacing side)
+	{
+		return side == EnumFacing.DOWN;
+	}
+
+	@Override
+	public IHeatTransfer getAdjacent(EnumFacing side)
+	{
+		if(canConnectHeat(side))
+		{
+			TileEntity adj = Coord4D.get(this).offset(side).getTileEntity(worldObj);
+			
+			if(MekanismUtils.hasCapability(adj, Capabilities.HEAT_TRANSFER_CAPABILITY, side.getOpposite()))
+			{
+				return MekanismUtils.getCapability(adj, Capabilities.HEAT_TRANSFER_CAPABILITY, side.getOpposite());
+			}
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public boolean hasCapability(Capability<?> capability, EnumFacing side)
+	{
+		return capability == Capabilities.HEAT_TRANSFER_CAPABILITY || super.hasCapability(capability, side);
+	}
+
+	@Override
+	public <T> T getCapability(Capability<T> capability, EnumFacing side)
+	{
+		if(capability == Capabilities.HEAT_TRANSFER_CAPABILITY)
+		{
+			return (T)this;
+		}
+		
+		return super.getCapability(capability, side);
+	}
+}

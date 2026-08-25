@@ -1,0 +1,17 @@
+{
+  "forge_marker": 1,
+  "defaults": {
+    "model": "mekanism:transmitter_small.obj.mek",
+    "textures": {
+      "#side": "mekanism:blocks/models/multipart/ThermodynamicConductorVerticalBasic",
+      "#center": "mekanism:blocks/models/multipart/ThermodynamicConductorBasic"
+    },
+    "custom": {
+      "flip-v": true
+    }
+  },
+  "variants": {
+    "multipart": [{}],
+    "inventory": [{}]
+  }
+}

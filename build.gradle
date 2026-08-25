@@ -1,0 +1,252 @@
+defaultTasks 'fullBuild'
+
+buildscript {
+    repositories {
+        mavenCentral() // Replaced dead jcenter()
+        maven {
+            name = "forge"
+            url = "https://maven.minecraftforge.net/" // Fixed URL string
+        }
+        maven {
+            name = "sonatype"
+            url = "https://central.sonatype.com/repository/maven-snapshots/" // Updated working snapshot server
+        }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'idea'
+
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+repositories {
+    maven {
+        name 'ForgeFS'
+        url 'https://maven.minecraftforge.net/' // Fixed dead URL & updated to HTTPS
+    }
+    maven {
+        name 'amadornes'
+        url "https://maven.amadornes.com/" // Updated to HTTPS
+    }
+    maven {
+        name 'prog'
+        url "https://dvs1.progwml6.com/files/maven" // Updated to HTTPS for JEI dependencies
+    }
+}
+
+ext.configFile = file "build.properties"
+
+configFile.withReader {
+    def prop = new Properties()
+    prop.load(it)
+ project.ext.config = new ConfigSlurper().parse prop
+}
+
+version = "${config.minecraft_version}-${config.mod_version}." + (System.env.BUILD_NUMBER ?: "homebaked")
+archivesBaseName = "MekanismAll"
+libsDirName = "../output"
+distsDirName = "../output"
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+minecraft {
+    version = config.minecraft_version + "-" + config.forge_version
+    mappings = "${config.mappings_version}"
+    runDir = "run"
+    useDepAts = true
+}
+
+dependencies {
+    // Local dev jars in libs/ changed to standard 'compile' configuration
+    compile files("libs/CodeChickenLib-1.8.9-2.0.2.1-dev.jar")
+    compile files("libs/CodeChickenCore-1.8.9-2.0.2.1-dev.jar")
+    compile files("libs/NotEnoughItems-1.8.9-2.0.2.1-dev.jar")
+    
+    // Note: Ensure your local file name matches this string exactly or replace it with the precise version string
+    compile files("libs/MCMultiPart-1.8.9-1.0.0-dev.jar") 
+
+    // JEI from Maven (Kept as deobfCompile because it uses proper Maven coordinate layout string)
+    deobfCompile "mezz.jei:jei_1.8.9:2.28.18.186"
+}
+
+processResources {
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+        exclude '**/*.blend*'
+    }
+}
+
+task coreJar(type: Jar) {
+    baseName = 'Mekanism'
+    manifest {
+        attributes 'FMLCorePlugin': 'mekanism.common.asm.LoadingHook'
+        attributes 'FMLCorePluginContainsFMLMod': 'true'
+    }
+    from('etc/core') {
+        include '*.info'
+        expand 'version': config.mod_version, 'mc_version': config.minecraft_version, 'fmp_version': config.FMP_version
+    }
+    from zipTree(jar.outputs.getFiles().getSingleFile()).matching {
+        exclude 'mekanism/tools/**', 'mekanism/generators/**', 'assets/mekanismtools/**', 'assets/mekanismgenerators/**', 'mcmod.info'
+    }
+}
+
+task toolsJar(type: Jar) {
+    baseName = 'MekanismTools'
+    from('etc/tools') {
+        include '*.info'
+        expand 'version':config.mod_version,'mc_version':config.minecraft_version,'fmp_version':config.FMP_version
+    }
+    from zipTree(jar.outputs.getFiles().getSingleFile()).matching {
+        include 'mekanism/tools/**', 'assets/mekanismtools/**'
+    }
+}
+
+task generatorsJar(type: Jar) {
+    baseName = 'MekanismGenerators'
+    from('etc/generators') {
+        include '*.info'
+        expand 'version':config.mod_version,'mc_version':config.minecraft_version,'fmp_version':config.FMP_version
+    }
+    from zipTree(jar.outputs.getFiles().getSingleFile()).matching {
+        include 'mekanism/generators/**', 'assets/mekanismgenerators/**'
+    }
+}
+
+coreJar.dependsOn('reobfJar')
+toolsJar.dependsOn('reobfJar')
+generatorsJar.dependsOn('reobfJar')
+
+task patchRetromap << {
+    // ForgeGradle 2.1 retromap recompiles against old IC2 API on classpath,
+    // reverting our API updates in MekanismHooks and OreDictManager.
+    //
+    // Fix: Take corrected classes from pre-retromap jar (MCP names) and
+    // SRG-remap them properly using ASM ClassRemapper, then inject into
+    // the reobf output jars.
+
+    def preRetromapJar = fileTree("${buildDir}/tmp/reobfJar").matching { include 'preTransformed*.jar' }.files.sort { it.lastModified() }.last()
+    project.logger.lifecycle("Patching from pre-retromap jar: ${preRetromapJar.name}")
+
+    def home = System.getProperty('user.home')
+    def srgFile = "${home}/.gradle/caches/minecraft/de/oceanlabs/mcp/mcp_stable/20/srgs/mcp-srg.srg"
+    def asmCp = [
+        "${home}/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-debug-all/5.2/3354e11e2b34215f06dab629ab88e06aca477c19/asm-debug-all-5.2.jar"
+    ].join(File.pathSeparator)
+
+    def jarsToPatch = []
+    [coreJar, toolsJar, generatorsJar].each { t ->
+        t.outputs.files.files.each { f -> if (f.exists()) jarsToPatch.add(f) }
+    }
+
+    jarsToPatch.each { jarFile ->
+        project.logger.lifecycle("Patching retromap in: ${jarFile.name}")
+
+        // Step 1: SRG-remap corrected classes from pre-retromap into a temp jar
+        def remappedJar = new File(jarFile.parentFile, jarFile.name + ".remapped")
+        def srgClasses = [
+            "mekanism/common/integration/MekanismHooks.class",
+            "mekanism/common/integration/OreDictManager.class"
+        ]
+
+        def procCmd = [
+            "${System.getenv('JAVA_HOME')}/bin/java.exe",
+            "-cp", "${project.projectDir}/buildSrc${File.pathSeparator}${asmCp}",
+            "SrgRemapper",
+            srgFile,
+            preRetromapJar.absolutePath,
+            remappedJar.absolutePath
+        ] + srgClasses
+
+        project.logger.lifecycle("Running SRG remapper: ${procCmd.join(' ')}")
+        def proc = procCmd.execute()
+        proc.consumeProcessOutput(System.out, System.err)
+        proc.waitFor()
+
+        if (proc.exitValue() != 0) {
+            throw new GradleException("SRG remapper failed with exit code ${proc.exitValue()}")
+        }
+
+        // Step 2: Merge remapped jar + pre-retromap IC2 API into the output jar
+        def preZip = new java.util.zip.ZipFile(preRetromapJar)
+        def remappedZip = new java.util.zip.ZipFile(remappedJar)
+        def origZip = new java.util.zip.ZipFile(jarFile)
+        def tempJar = new File(jarFile.parentFile, jarFile.name + ".patched")
+        def zipOut = new java.util.zip.ZipOutputStream(new FileOutputStream(tempJar))
+        def patchedEntries = new HashSet()
+
+        // Copy IC2 API classes from pre-retromap jar (no vanilla refs)
+        preZip.entries().each { entry ->
+            if (entry.isDirectory()) return
+            if (entry.name.startsWith("ic2/api/")) {
+                zipOut.putNextEntry(new java.util.zip.ZipEntry(entry.name))
+                zipOut.write(preZip.getInputStream(entry).bytes)
+                zipOut.closeEntry()
+                patchedEntries.add(entry.name)
+            }
+        }
+        preZip.close()
+
+        // Copy SRG-remapped classes from the remapped jar
+        srgClasses.each { className ->
+            def remappedEntry = remappedZip.getEntry(className)
+            if (remappedEntry != null) {
+                zipOut.putNextEntry(new java.util.zip.ZipEntry(className))
+                zipOut.write(remappedZip.getInputStream(remappedEntry).bytes)
+                zipOut.closeEntry()
+                patchedEntries.add(className)
+                project.logger.lifecycle("  Injected SRG-remapped: ${className}")
+            }
+        }
+
+        // Copy everything else from the retromapped (reobf) jar
+        origZip.entries().each { entry ->
+            if (entry.isDirectory()) return
+            if (patchedEntries.contains(entry.name)) return
+            zipOut.putNextEntry(new java.util.zip.ZipEntry(entry.name))
+            zipOut.write(origZip.getInputStream(entry).bytes)
+            zipOut.closeEntry()
+        }
+        origZip.close()
+        remappedZip.close()
+        zipOut.close()
+        jarFile.delete()
+        tempJar.renameTo(jarFile)
+    }
+}
+
+task MDKZip(type: Zip) {
+    baseName = 'MDK'
+    from sourceSets.main.java.srcDirs
+    include 'mekanism/api/**'
+}
+
+task releaseJars(type: Copy) {
+    dependsOn patchRetromap
+    from coreJar
+    from toolsJar
+    from generatorsJar
+    from MDKZip
+    rename '-(.*)jar', '.jar'
+    rename '-(.*)zip', '.zip'
+    into 'build/releases'
+}
+
+task fullBuild(type: Delete) {
+    delete jar
+}
+
+fullBuild.dependsOn('releaseJars')
+
+// Force Java compiler to use UTF-8 instead of system-native encoding (fixes unmappable character errors)
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}

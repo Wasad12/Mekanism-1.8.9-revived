@@ -1,0 +1,110 @@
+package mekanism.common.tile;
+
+import io.netty.buffer.ByteBuf;
+
+import java.util.ArrayList;
+
+import mekanism.api.energy.IStrictEnergyStorage;
+import mekanism.common.Tier.InductionCellTier;
+import mekanism.common.capabilities.Capabilities;
+import mekanism.common.util.LangUtils;
+import mekanism.common.util.MekanismUtils;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+
+public class TileEntityInductionCell extends TileEntityBasicBlock implements IStrictEnergyStorage
+{
+	public InductionCellTier tier = InductionCellTier.BASIC;
+	
+	public double electricityStored;
+	
+	@Override
+	public void onUpdate() {}
+	
+	public String getName()
+	{
+		return LangUtils.localize(getBlockType().getUnlocalizedName() + ".InductionCell" + tier.getBaseTier().getSimpleName() + ".name");
+	}
+	
+	@Override
+	public void handlePacketData(ByteBuf dataStream)
+	{
+		super.handlePacketData(dataStream);
+		
+		if(FMLCommonHandler.instance().getEffectiveSide().isClient())
+		{
+			InductionCellTier prevTier = tier;
+			
+			tier = InductionCellTier.values()[dataStream.readInt()];
+			electricityStored = dataStream.readDouble();
+	
+			if(prevTier != tier)
+			{
+				MekanismUtils.updateBlock(worldObj, getPos());
+			}
+		}
+	}
+
+	@Override
+	public ArrayList<Object> getNetworkedData(ArrayList<Object> data)
+	{
+		data.add(tier.ordinal());
+
+		super.getNetworkedData(data);
+		
+		data.add(electricityStored);
+
+		return data;
+	}
+
+	@Override
+	public void readFromNBT(NBTTagCompound nbtTags)
+	{
+		super.readFromNBT(nbtTags);
+
+		tier = InductionCellTier.values()[nbtTags.getInteger("tier")];
+		electricityStored = nbtTags.getDouble("electricityStored");
+	}
+
+	@Override
+	public void writeToNBT(NBTTagCompound nbtTags)
+	{
+		super.writeToNBT(nbtTags);
+
+		nbtTags.setInteger("tier", tier.ordinal());
+		nbtTags.setDouble("electricityStored", electricityStored);
+	}
+
+	@Override
+	public double getEnergy() 
+	{
+		return electricityStored;
+	}
+
+	@Override
+	public void setEnergy(double energy) 
+	{
+		electricityStored = Math.min(energy, getMaxEnergy());
+	}
+
+	@Override
+	public double getMaxEnergy() 
+	{
+		return tier.maxEnergy;
+	}
+
+	@Override
+	public boolean hasCapability(net.minecraftforge.common.capabilities.Capability<?> capability, net.minecraft.util.EnumFacing facing)
+	{
+		return capability == Capabilities.ENERGY_STORAGE_CAPABILITY || super.hasCapability(capability, facing);
+	}
+
+	@Override
+	public <T> T getCapability(Capability<T> capability, net.minecraft.util.EnumFacing facing)
+	{
+		if (capability == Capabilities.ENERGY_STORAGE_CAPABILITY)
+			return (T) this;
+		return super.getCapability(capability, facing);
+	}
+}

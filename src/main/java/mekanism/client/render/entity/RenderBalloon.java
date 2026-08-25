@@ -1,0 +1,71 @@
+package mekanism.client.render.entity;
+
+import mekanism.api.EnumColor;
+import mekanism.client.model.ModelBalloon;
+import mekanism.common.entity.EntityBalloon;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.MekanismUtils.ResourceType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.Render;
+import net.minecraft.client.renderer.entity.RenderManager;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import org.lwjgl.opengl.GL11;
+
+@SideOnly(Side.CLIENT)
+public class RenderBalloon extends Render<EntityBalloon>
+{
+	private Minecraft mc = Minecraft.getMinecraft();
+
+	public ModelBalloon model = new ModelBalloon();
+
+	public RenderBalloon(RenderManager renderManager)
+	{
+		super(renderManager);
+	}
+
+	@Override
+	protected ResourceLocation getEntityTexture(EntityBalloon entity)
+	{
+		return MekanismUtils.getResource(ResourceType.RENDER, "Balloon.png");
+	}
+
+	@Override
+	public void doRender(EntityBalloon balloon, double x, double y, double z, float f, float partialTick)
+	{
+		double renderPosX = x - (balloon.lastTickPosX + (balloon.posX - balloon.lastTickPosX)*partialTick);
+		double renderPosY = y - (balloon.lastTickPosY + (balloon.posY - balloon.lastTickPosY)*partialTick);
+		double renderPosZ = z - (balloon.lastTickPosZ + (balloon.posZ - balloon.lastTickPosZ)*partialTick);
+		
+		if(balloon.isLatchedToEntity())
+		{
+			x = (balloon.latchedEntity.lastTickPosX + (balloon.latchedEntity.posX - balloon.latchedEntity.lastTickPosX)*partialTick);
+			y = (balloon.latchedEntity.lastTickPosY + (balloon.latchedEntity.posY - balloon.latchedEntity.lastTickPosY)*partialTick);
+			z = (balloon.latchedEntity.lastTickPosZ + (balloon.latchedEntity.posZ - balloon.latchedEntity.lastTickPosZ)*partialTick);
+
+			x += renderPosX;
+			y += renderPosY;
+			z += renderPosZ;
+
+			y += balloon.getAddedHeight();
+		}
+
+		render(balloon.color, x, y, z);
+	}
+
+	public void render(EnumColor color, double x, double y, double z)
+	{
+		GlStateManager.pushMatrix();
+		GL11.glTranslated(x, y, z);
+		GlStateManager.rotate(180, 1, 0, 0);
+
+		mc.renderEngine.bindTexture(MekanismUtils.getResource(ResourceType.RENDER, "Balloon.png"));
+
+		model.render(0.0625F, color);
+
+		GlStateManager.popMatrix();
+	}
+}
