@@ -8,6 +8,8 @@ import mekanism.api.Range4D;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.MekanismBlocks;
+import mekanism.common.block.states.BlockStateMachine.MachineType;
+import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.MekanismItems;
 import mekanism.common.SideData;
 import mekanism.common.Tier.BaseTier;
@@ -119,6 +121,7 @@ public abstract class TileEntityElectricMachine<RECIPE extends BasicMachineRecip
 		factory.upgraded = true;
 		
 		factory.markDirty();
+		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList()), MachineType.BASIC_FACTORY), new Range4D(Coord4D.get(factory)));
 	}
 	
 	@Override

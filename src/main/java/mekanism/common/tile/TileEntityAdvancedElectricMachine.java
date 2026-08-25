@@ -15,7 +15,9 @@ import mekanism.api.gas.ITubeConnection;
 import mekanism.api.transmitters.TransmissionType;
 import mekanism.common.Mekanism;
 import mekanism.common.MekanismBlocks;
+import mekanism.common.block.states.BlockStateMachine.MachineType;
 import mekanism.common.MekanismItems;
+import mekanism.common.network.PacketTileEntity.TileEntityMessage;
 import mekanism.common.SideData;
 import mekanism.common.Tier.BaseTier;
 import mekanism.common.Upgrade;
@@ -157,6 +159,7 @@ public abstract class TileEntityAdvancedElectricMachine<RECIPE extends AdvancedM
 		factory.upgraded = true;
 		
 		factory.markDirty();
+		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList()), MachineType.BASIC_FACTORY), new Range4D(Coord4D.get(factory)));
 	}
 
 	@Override

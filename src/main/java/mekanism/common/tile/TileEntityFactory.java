@@ -250,7 +250,8 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 		factory.upgraded = true;
 		
 		factory.markDirty();
-		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), new Range4D(Coord4D.get(factory)));
+		MachineType newType = tier == FactoryTier.BASIC ? MachineType.ADVANCED_FACTORY : MachineType.ELITE_FACTORY;
+		Mekanism.packetHandler.sendToReceivers(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList()), newType), new Range4D(Coord4D.get(factory)));
 	}
 
 	@Override
