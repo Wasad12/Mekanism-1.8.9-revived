@@ -68,13 +68,6 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 					stack.stackSize = 0;
 				}
 				
-				// Send packet directly to player for immediate sync
-				TileEntityFactory newFactory = (TileEntityFactory)world.getTileEntity(pos);
-				if(newFactory != null)
-				{
-					Mekanism.packetHandler.sendTo(new TileEntityMessage(Coord4D.get(newFactory), newFactory.getNetworkedData(new ArrayList())), (EntityPlayerMP)player);
-				}
-				
 				return true;
 			}
 		}
@@ -104,13 +97,6 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 						stack.stackSize = 0;
 					}
 					
-					// Send packet directly to player for immediate sync
-					TileEntityFactory factory = (TileEntityFactory)world.getTileEntity(pos);
-					if(factory != null)
-					{
-						Mekanism.packetHandler.sendTo(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), (EntityPlayerMP)player);
-					}
-					
 					return true;
 				}
 				else if(tile instanceof TileEntityAdvancedElectricMachine)
@@ -122,13 +108,6 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 						stack.stackSize = 0;
 					}
 					
-					// Send packet directly to player for immediate sync
-					TileEntityFactory factory = (TileEntityFactory)world.getTileEntity(pos);
-					if(factory != null)
-					{
-						Mekanism.packetHandler.sendTo(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), (EntityPlayerMP)player);
-					}
-					
 					return true;
 				}
 				else if(tile instanceof TileEntityMetallurgicInfuser)
@@ -138,13 +117,6 @@ public class ItemFactoryInstaller extends ItemMekanism implements IMetaItem
 					if(!player.capabilities.isCreativeMode)
 					{
 						stack.stackSize = 0;
-					}
-					
-					// Send packet directly to player for immediate sync
-					TileEntityFactory factory = (TileEntityFactory)world.getTileEntity(pos);
-					if(factory != null)
-					{
-						Mekanism.packetHandler.sendTo(new TileEntityMessage(Coord4D.get(factory), factory.getNetworkedData(new ArrayList())), (EntityPlayerMP)player);
 					}
 					
 					return true;
