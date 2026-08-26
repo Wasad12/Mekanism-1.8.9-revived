@@ -216,10 +216,7 @@ tile.EnergyCubeElite.name=Elite Energy Cube
 tile.EnergyCubeUltimate.name=Ultimate Energy Cube
 tile.EnergyCubeCreative.name=Creative Energy Cube
 
-//Factory Installers
-item.basicFactoryInstaller.name=Basic Factory Installer
-item.advancedFactoryInstaller.name=Advanced Factory Installer
-item.eliteFactoryInstaller.name=Elite Factory Installer
+//Tier Installers
 item.basicTierInstaller.name=Basic Tier Installer
 item.advancedTierInstaller.name=Advanced Tier Installer
 item.eliteTierInstaller.name=Elite Tier Installer
