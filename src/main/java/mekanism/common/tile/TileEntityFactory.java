@@ -375,6 +375,8 @@ public void sortInventory()
 			return;
 		}
 
+		boolean didOp = false;
+
 		int[] inputSlots = null;
 
 		if(tier == FactoryTier.BASIC)
@@ -397,27 +399,23 @@ public void sortInventory()
 			invStacks.add(InvID.get(id, inventory));
 		}
 
-		boolean didOp = true;
-		int attempts = 0;
-		int maxAttempts = invStacks.size() * 2; // Prevent infinite loops
-
-		while(didOp && attempts < maxAttempts)
+		for(InvID invID1 : invStacks)
 		{
-			didOp = false;
-			attempts++;
-
-			for(InvID invID1 : invStacks)
+			for(InvID invID2 : invStacks)
 			{
-				for(InvID invID2 : invStacks)
-				{
-					if(invID1.ID == invID2.ID || StackUtils.diffIgnoreNull(invID1.stack, invID2.stack) || Math.abs(invID1.size()-invID2.size()) < 2) continue;
+				if(invID1.ID == invID2.ID || StackUtils.diffIgnoreNull(invID1.stack, invID2.stack) || Math.abs(invID1.size()-invID2.size()) < 2) continue;
 
-					List<ItemStack> evened = StackUtils.even(inventory[invID1.ID], inventory[invID2.ID]);
-					inventory[invID1.ID] = evened.get(0);
-					inventory[invID2.ID] = evened.get(1);
+				List<ItemStack> evened = StackUtils.even(inventory[invID1.ID], inventory[invID2.ID]);
+				inventory[invID1.ID] = evened.get(0);
+				inventory[invID2.ID] = evened.get(1);
 
-					didOp = true;
-				}
+				didOp = true;
+				break;
+			}
+
+			if(didOp)
+			{
+				break;
 			}
 		}
 
