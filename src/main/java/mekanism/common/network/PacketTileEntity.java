@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import java.util.ArrayList;
 
 import mekanism.api.Coord4D;
+import mekanism.api.MekanismConfig.general;
 import mekanism.common.PacketHandler;
 import mekanism.common.base.ITileNetwork;
 import mekanism.common.block.states.BlockStateMachine.MachineType;
@@ -128,12 +129,15 @@ public class PacketTileEntity implements IMessageHandler<TileEntityMessage, IMes
 		{
 			coord4D.write(dataStream);
 			
-			MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-			
-			if(server != null)
+			if(general.logPackets)
 			{
-				World world = server.worldServerForDimension(coord4D.dimensionId);
-				PacketHandler.log("Sending TileEntity packet from coordinate " + coord4D + " (" + coord4D.getTileEntity(world) + ")");
+				MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+				
+				if(server != null)
+				{
+					World world = server.worldServerForDimension(coord4D.dimensionId);
+					PacketHandler.log("Sending TileEntity packet from coordinate " + coord4D + " (" + coord4D.getTileEntity(world) + ")");
+				}
 			}
 			
 			PacketHandler.encode(new Object[] {parameters}, dataStream);

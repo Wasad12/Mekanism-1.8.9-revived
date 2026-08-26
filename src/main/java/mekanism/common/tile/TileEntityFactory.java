@@ -370,9 +370,12 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 
 	public void sortInventory()
 	{
-		if(sorting)
+		if(!sorting || ticker % 20 != 0)
 		{
-			boolean didOp = false;
+			return;
+		}
+
+		boolean didOp = false;
 
 			int[] inputSlots = null;
 
@@ -416,7 +419,6 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 					break;
 				}
 			}
-		}
 	}
 
 	public static class InvID
