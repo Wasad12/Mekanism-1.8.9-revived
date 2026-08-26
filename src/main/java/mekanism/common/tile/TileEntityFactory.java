@@ -394,10 +394,7 @@ public void sortInventory()
 			inputSlots = new int[] {5, 6, 7, 8, 9, 10, 11};
 		}
 
-		// Limit to max 4 slots for auto-split
-		int[] sortSlots = inputSlots.length > 4 ? java.util.Arrays.copyOf(inputSlots, 4) : inputSlots;
-
-		for(int id : sortSlots)
+		for(int id : inputSlots)
 		{
 			invStacks.add(InvID.get(id, inventory));
 		}
