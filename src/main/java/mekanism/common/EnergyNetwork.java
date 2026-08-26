@@ -30,6 +30,10 @@ public class EnergyNetwork extends DynamicNetwork<EnergyAcceptorWrapper, EnergyN
 
 	public EnergyStack buffer = new EnergyStack(0);
 
+	// Cached acceptors to avoid recomputing every tick
+	private Set<EnergyAcceptorWrapper> cachedAcceptors = null;
+	private boolean acceptorsDirty = true;
+
 	public EnergyNetwork() {}
 
 	public EnergyNetwork(Collection<EnergyNetwork> networks)
@@ -192,12 +196,17 @@ public class EnergyNetwork extends DynamicNetwork<EnergyAcceptorWrapper, EnergyN
 	@Override
 	public Set<EnergyAcceptorWrapper> getAcceptors(Object data)
 	{
-		Set<EnergyAcceptorWrapper> toReturn = new HashSet<>();
-
 		if(FMLCommonHandler.instance().getEffectiveSide().isClient())
 		{
-			return toReturn;
+			return Collections.emptySet();
 		}
+
+		if(!acceptorsDirty && cachedAcceptors != null)
+		{
+			return cachedAcceptors;
+		}
+
+		Set<EnergyAcceptorWrapper> toReturn = new HashSet<>();
 
 		for(Coord4D coord : possibleAcceptors.keySet())
 		{
@@ -224,6 +233,8 @@ public class EnergyNetwork extends DynamicNetwork<EnergyAcceptorWrapper, EnergyN
 			}
 		}
 
+		cachedAcceptors = toReturn;
+		acceptorsDirty = false;
 		return toReturn;
 	}
 
@@ -274,6 +285,27 @@ public class EnergyNetwork extends DynamicNetwork<EnergyAcceptorWrapper, EnergyN
 				buffer.amount -= tickEmit(buffer.amount);
 			}
 		}
+	}
+
+	@Override
+	public void updateTransmitterOnSide(IGridTransmitter<EnergyAcceptorWrapper, EnergyNetwork> transmitter, EnumFacing side)
+	{
+		super.updateTransmitterOnSide(transmitter, side);
+		acceptorsDirty = true;
+	}
+
+	@Override
+	public void commit()
+	{
+		super.commit();
+		acceptorsDirty = true;
+	}
+
+	@Override
+	public void adoptTransmittersAndAcceptorsFrom(EnergyNetwork net)
+	{
+		super.adoptTransmittersAndAcceptorsFrom(net);
+		acceptorsDirty = true;
 	}
 
 	public double getPowerScale()
