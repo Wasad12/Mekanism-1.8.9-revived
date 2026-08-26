@@ -220,6 +220,10 @@ tile.EnergyCubeCreative.name=Creative Energy Cube
 item.basicFactoryInstaller.name=Basic Factory Installer
 item.advancedFactoryInstaller.name=Advanced Factory Installer
 item.eliteFactoryInstaller.name=Elite Factory Installer
+item.basicTierInstaller.name=Basic Tier Installer
+item.advancedTierInstaller.name=Advanced Tier Installer
+item.eliteTierInstaller.name=Elite Tier Installer
+item.ultimateTierInstaller.name=Ultimate Tier Installer
 
 //Dust
 item.ironDust.name=Iron Dust
