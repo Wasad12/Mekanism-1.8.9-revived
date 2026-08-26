@@ -368,7 +368,7 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 		return configComponent.getSidesForData(TransmissionType.ENERGY, facing, 1);
 	}
 
-	public void sortInventory()
+public void sortInventory()
 	{
 		if(!sorting || ticker % 20 != 0)
 		{
@@ -377,48 +377,51 @@ public class TileEntityFactory extends TileEntityNoisyElectricBlock implements I
 
 		boolean didOp = false;
 
-			int[] inputSlots = null;
+		int[] inputSlots = null;
 
-			List<InvID> invStacks = new ArrayList<InvID>();
+		List<InvID> invStacks = new ArrayList<InvID>();
 
-			if(tier == FactoryTier.BASIC)
+		if(tier == FactoryTier.BASIC)
+		{
+			inputSlots = new int[] {5, 6, 7};
+		}
+		else if(tier == FactoryTier.ADVANCED)
+		{
+			inputSlots = new int[] {5, 6, 7, 8, 9};
+		}
+		else if(tier == FactoryTier.ELITE)
+		{
+			inputSlots = new int[] {5, 6, 7, 8, 9, 10, 11};
+		}
+
+		// Limit to max 4 slots for auto-split
+		int[] sortSlots = inputSlots.length > 4 ? java.util.Arrays.copyOf(inputSlots, 4) : inputSlots;
+
+		for(int id : sortSlots)
+		{
+			invStacks.add(InvID.get(id, inventory));
+		}
+
+		for(InvID invID1 : invStacks)
+		{
+			for(InvID invID2 : invStacks)
 			{
-				inputSlots = new int[] {5, 6, 7};
+				if(invID1.ID == invID2.ID || StackUtils.diffIgnoreNull(invID1.stack, invID2.stack) || Math.abs(invID1.size()-invID2.size()) < 2) continue;
+
+				List<ItemStack> evened = StackUtils.even(inventory[invID1.ID], inventory[invID2.ID]);
+				inventory[invID1.ID] = evened.get(0);
+				inventory[invID2.ID] = evened.get(1);
+
+				didOp = true;
+				break;
 			}
-			else if(tier == FactoryTier.ADVANCED)
+
+			if(didOp)
 			{
-				inputSlots = new int[] {5, 6, 7, 8, 9};
+				markDirty();
+				break;
 			}
-			else if(tier == FactoryTier.ELITE)
-			{
-				inputSlots = new int[] {5, 6, 7, 8, 9, 10, 11};
-			}
-
-			for(int id : inputSlots)
-			{
-				invStacks.add(InvID.get(id, inventory));
-			}
-
-			for(InvID invID1 : invStacks)
-			{
-				for(InvID invID2 : invStacks)
-				{
-					if(invID1.ID == invID2.ID || StackUtils.diffIgnoreNull(invID1.stack, invID2.stack) || Math.abs(invID1.size()-invID2.size()) < 2) continue;
-
-					List<ItemStack> evened = StackUtils.even(inventory[invID1.ID], inventory[invID2.ID]);
-					inventory[invID1.ID] = evened.get(0);
-					inventory[invID2.ID] = evened.get(1);
-
-					didOp = true;
-					break;
-				}
-
-				if(didOp)
-				{
-					markDirty();
-					break;
-				}
-			}
+		}
 	}
 
 	public static class InvID
