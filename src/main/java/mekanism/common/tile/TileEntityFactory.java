@@ -375,11 +375,7 @@ public void sortInventory()
 			return;
 		}
 
-		boolean didOp = false;
-
 		int[] inputSlots = null;
-
-		List<InvID> invStacks = new ArrayList<InvID>();
 
 		if(tier == FactoryTier.BASIC)
 		{
@@ -394,31 +390,45 @@ public void sortInventory()
 			inputSlots = new int[] {5, 6, 7, 8, 9, 10, 11};
 		}
 
+		// Collect all items from input slots
+		List<ItemStack> allItems = new ArrayList<>();
 		for(int id : inputSlots)
 		{
-			invStacks.add(InvID.get(id, inventory));
+			if(inventory[id] != null)
+			{
+				allItems.add(inventory[id].copy());
+				inventory[id] = null;
+			}
 		}
 
-		for(InvID invID1 : invStacks)
+		if(allItems.isEmpty())
 		{
-			for(InvID invID2 : invStacks)
+			return;
+		}
+
+		// Sort items by item type for better grouping
+		allItems.sort((a, b) -> {
+			int cmp = Item.getIdFromItem(a.getItem()) - Item.getIdFromItem(b.getItem());
+			if(cmp != 0) return cmp;
+			return a.getItemDamage() - b.getItemDamage();
+		});
+
+		// Redistribute evenly across all input slots
+		int slotIndex = 0;
+		for(ItemStack stack : allItems)
+		{
+			while(stack != null && stack.stackSize > 0)
 			{
-				if(invID1.ID == invID2.ID || StackUtils.diffIgnoreNull(invID1.stack, invID2.stack) || Math.abs(invID1.size()-invID2.size()) < 2) continue;
-
-				List<ItemStack> evened = StackUtils.even(inventory[invID1.ID], inventory[invID2.ID]);
-				inventory[invID1.ID] = evened.get(0);
-				inventory[invID2.ID] = evened.get(1);
-
-				didOp = true;
-				break;
-			}
-
-			if(didOp)
-			{
-				markDirty();
-				break;
+				ItemStack toPlace = stack.copy();
+				toPlace.stackSize = 1;
+				inventory[inputSlots[slotIndex]] = ItemStack.areItemStacksEqual(inventory[inputSlots[slotIndex]], toPlace) 
+					? StackUtils.add(inventory[inputSlots[slotIndex]], toPlace) : toPlace;
+				stack.stackSize--;
+				slotIndex = (slotIndex + 1) % inputSlots.length;
 			}
 		}
+
+		markDirty();
 	}
 
 	public static class InvID
