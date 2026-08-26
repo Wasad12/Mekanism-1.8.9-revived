@@ -42,6 +42,9 @@ public class GasNetwork extends DynamicNetwork<IGasHandler, GasNetwork>
 
 	public int prevTransferAmount = 0;
 
+	// Event cooldown to prevent event spam
+	public int eventCooldown = 0;
+
 	public GasNetwork() {}
 
 	public GasNetwork(Collection<GasNetwork> networks)
@@ -241,10 +244,17 @@ public class GasNetwork extends DynamicNetwork<IGasHandler, GasNetwork>
 
 			prevStored = stored;
 
-			if(didTransfer != prevTransfer || needsUpdate)
+			// Event cooldown to prevent event spam
+			if(eventCooldown > 0)
+			{
+				eventCooldown--;
+			}
+
+			if((didTransfer != prevTransfer || needsUpdate) && eventCooldown == 0)
 			{
 				MinecraftForge.EVENT_BUS.post(new GasTransferEvent(this, buffer, didTransfer));
 				needsUpdate = false;
+				eventCooldown = 10; // 10 tick cooldown
 			}
 
 			prevTransfer = didTransfer;
